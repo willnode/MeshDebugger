@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-//[Serializable]
+// Mesh Analytics Gatherer
+
 public class MeshInfo
 {
     public Mesh m_Mesh;
@@ -12,6 +13,7 @@ public class MeshInfo
     public Bounds m_MeshBounds;
     public int m_VertCount;
     public int m_IndiceCount;
+    public int m_IndiceCountNormalized;
     public int m_MeshSubmeshCount;
 
     public List<Vector3> m_Verts;
@@ -87,7 +89,7 @@ public class MeshInfo
             Resize(ref m_IndiceNormals, m_MeshSubmeshCount);
             Array.Resize(ref m_IndiceOffsets, m_MeshSubmeshCount);
             Array.Resize(ref m_IndiceTypes, m_MeshSubmeshCount);
-            var iter = 0;
+            int iter = 0, iterNormaled = 0;
             for (int i = 0; i < m_MeshSubmeshCount; i++)
             {
                 Set(ref m_Indices[i], m_Mesh.GetIndices(i));
@@ -97,32 +99,39 @@ public class MeshInfo
                 var indice = m_Indices[i];
                 var normal = m_Normals[0];
                 iter += indice.Count;
+                iterNormaled += indice.Count / steps;
                 for (int m = 0; m < indice.Count; m += steps)
                 {
+                    int a, b, c, d;
                     switch (steps)
                     {
                         case 1:
-                            m_IndiceMedians[i].Add(m_Verts[indice[m]]);
-                            m_IndiceNormals[i].Add(normal[indice[m]]);
+                            a = indice[m];
+                            m_IndiceMedians[i].Add(m_Verts[a]);
+                            m_IndiceNormals[i].Add(normal[a]);
                             m_IndiceAreas[i].Add(0); break;
                         case 2:
-                            m_IndiceMedians[i].Add((m_Verts[indice[m]] + m_Verts[indice[m + 1]]) / 2);
-                            m_IndiceNormals[i].Add((normal[indice[m]] + normal[indice[m + 1]]).normalized);
-                            m_IndiceAreas[i].Add(0); break;
+                            a = indice[m]; b = indice[m + 1];
+                            m_IndiceMedians[i].Add((m_Verts[a] + m_Verts[b]) / 2);
+                            m_IndiceNormals[i].Add((normal[a] + normal[b]).normalized);
+                            m_IndiceAreas[i].Add((m_Verts[a] + m_Verts[b]).magnitude); break;
                         case 3:
-                            m_IndiceMedians[i].Add((m_Verts[indice[m]] + m_Verts[indice[m + 1]] + m_Verts[indice[m + 2]]) / 3);
-                            m_IndiceNormals[i].Add((normal[indice[m]] + normal[indice[m + 1]] + normal[indice[m + 2]]).normalized);
-                            m_IndiceAreas[i].Add(GetTriArea(m_Verts[indice[m]], m_Verts[indice[m + 1]], m_Verts[indice[m + 2]])); break;
+                            a = indice[m]; b = indice[m + 1]; c = indice[m + 2];
+                            m_IndiceMedians[i].Add((m_Verts[a] + m_Verts[b] + m_Verts[c]) / 3);
+                            m_IndiceNormals[i].Add((normal[a] + normal[b] + normal[c]).normalized);
+                            m_IndiceAreas[i].Add(GetTriArea(m_Verts[a], m_Verts[b], m_Verts[c])); break;
                         case 4:
-                            m_IndiceMedians[i].Add((m_Verts[indice[m]] + m_Verts[indice[m + 1]] + m_Verts[indice[m + 2]] + m_Verts[indice[m + 3]]) / 4);
-                            m_IndiceNormals[i].Add((normal[indice[m]] + normal[indice[m + 1]] + normal[indice[m + 2]] + normal[indice[m + 3]]).normalized);
-                            m_IndiceAreas[i].Add(GetTriArea(m_Verts[indice[m]], m_Verts[indice[m + 1]], m_Verts[indice[m + 2]]) +
-                             GetTriArea(m_Verts[indice[m + 3]], m_Verts[indice[m + 1]], m_Verts[indice[m + 2]])); break;
+                            a = indice[m]; b = indice[m + 1]; c = indice[m + 2]; d = indice[m + 3];
+                            m_IndiceMedians[i].Add((m_Verts[a] + m_Verts[b] + m_Verts[c] + m_Verts[d]) / 4);
+                            m_IndiceNormals[i].Add((normal[a] + normal[b] + normal[c] + normal[d]).normalized);
+                            m_IndiceAreas[i].Add(GetTriArea(m_Verts[a], m_Verts[b], m_Verts[c]) +
+                             GetTriArea(m_Verts[d], m_Verts[b], m_Verts[c])); break;
                     }
                     m_IndiceAreaMax = Mathf.Max(m_IndiceAreaMax, m_IndiceAreas[i][m_IndiceAreas[i].Count - 1]);
                 }
             }
             m_IndiceCount = iter;
+            m_IndiceCountNormalized = iterNormaled;
         }
         {
             m_VertSimilarsMax = 0;
@@ -145,8 +154,8 @@ public class MeshInfo
                 for (int j = 0; j < indice.Count; j++)
                 {
                     var idx = indice[j];
-                    m_VertToIndicesDir[idx] = (m_Verts[idx] - m_IndiceMedians[i][j / m_TopologyDivision[m_IndiceTypes[i]]]).normalized;
-                    m_VertUsedCountMax = Mathf.Max(m_VertUsedCountMax, m_VertUsedCounts[idx]++);
+                    m_VertToIndicesDir[idx] = (m_IndiceMedians[i][j / m_TopologyDivision[m_IndiceTypes[i]]] - m_Verts[idx]);
+                    m_VertUsedCountMax = Mathf.Max(m_VertUsedCountMax, ++m_VertUsedCounts[idx]);
                 }
             }
         }

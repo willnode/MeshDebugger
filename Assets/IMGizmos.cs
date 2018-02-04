@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [Serializable]
-public class IMGizmos
+public class IMGizmos : IDisposable
 {
     public List<IMGizmo> m_Gizmos = new List<IMGizmo>();
 
@@ -51,7 +51,7 @@ public class IMGizmos
         else
             m_Gizmos[m_CurIter].m_Active = true;
     }
-
+    
     private void CreateNewIter()
     {
         var giz = ScriptableObject.CreateInstance<IMGizmo>();
@@ -77,6 +77,14 @@ public class IMGizmos
         {
             if (m_Gizmos[i].m_Active)
                 m_Gizmos[i].End();
+        }
+    }
+
+    public void Dispose()
+    {
+        foreach (var item in m_Gizmos)
+        {
+            UnityEngine.Object.DestroyImmediate(item);
         }
     }
 }

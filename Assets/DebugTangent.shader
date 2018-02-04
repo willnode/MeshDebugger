@@ -1,5 +1,4 @@
-﻿// Upgrade NOTE: replaced 'mul(UNITY_MATRIX_MVP,*)' with 'UnityObjectToClipPos(*)'
-
+﻿
 Shader "Debug/Tangents" {
 	Properties{
 		[Enum(Normal,1,Tangent,2,Bitangent,3,WorldNormal,4,WorldTangent,5,WorldBitangent,6)]	Tan_Mode("Visualization Mode", Int) = 1
