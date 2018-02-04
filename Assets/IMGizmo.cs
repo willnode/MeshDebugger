@@ -3,169 +3,221 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
-using System;
-using System.Linq;
-using System.Reflection;
-using System.Reflection.Emit;
 
-[Serializable]
-public class IMUnit {
+public class IMGizmo : ScriptableObject {
     
-    public XList<Vector3> m_Vertices = new XList<Vector3>();
-    public XList<int> m_Indices = new XList<int>();
+    
+    void OnEnable () {
+        hideFlags = HideFlags.DontSave;
+        SceneView.onSceneGUIDelegate += OnRenderScene;
+    }
+    
+    void OnDisable () {
+        SceneView.onSceneGUIDelegate -= OnRenderScene;
+    }
 
-    public XList<Color> m_Color;
-    public XList<Vector4> m_UV;
-    public XList<Vector4> m_UV2;
-    public XList<Vector4> m_UV3;
-    public XList<Vector4> m_UV4;
+    public Transform m_Camera;
+    public Mesh m_Mesh;
+    public Material m_Material;
+    public Matrix4x4 m_Matrix;
+    public bool m_EqualSize;
+    public bool m_Active = true;
+    public int m_Layer = 0;
 
-    public bool m_useColor;
-    public int m_useUV;
+    public List<Vector3> m_Vertices = new List<Vector3>(16);
+    public List<Color> m_Color = new List<Color>(16);
+    public List<int> m_Lines = new List<int>(16);
+    public List<int> m_Quads = new List<int>(16);
+    
+    public void AddLine (Vector3 start, Vector3 end, Color color)
+    {
+        
+        m_Vertices.Add(start);
+        m_Vertices.Add(end);
+        var m = m_Vertices.Count;
+        m_Lines.Add(m - 2);
+        m_Lines.Add(m - 1);
+        m_Color.Add(color);
+        m_Color.Add(color);
+    }
+    
+    public void AddRay (Vector3 pos, Vector3 dir, Color color) {
+        if (m_EqualSize)
+            dir *= GetHandleSize(pos);
+        AddLine(pos, pos + dir, color);
+    }
+    
+    public void AddQuad (Vector3 pos, Vector3 up, Vector3 right, Color color)
+    {
+        m_Vertices.Add(pos + up - right);
+        m_Vertices.Add(pos - up - right);
+        m_Vertices.Add(pos - up + right);
+        m_Vertices.Add(pos + up + right);
+        var m = m_Vertices.Count;
+        m_Quads.Add(m - 4);
+        m_Quads.Add(m - 3);
+        m_Quads.Add(m - 2);
+        m_Quads.Add(m - 1);
+        m_Color.Add(color);
+        m_Color.Add(color);
+        m_Color.Add(color);
+        m_Color.Add(color);
+    }
+    
+    
+    public void AddQuad (Vector3 pos, float size, Color color)
+    {
+        if (m_EqualSize)
+            size *= GetHandleSize(pos);
+        AddQuad(pos, m_Camera.up * size, m_Camera.right * size, color);
+    }
+    
+    public void AddQuad (Vector3 pos, float size, float colorFactor)
+    {
+        if (m_EqualSize)
+            size *= GetHandleSize(pos);
+        AddQuad(pos + m_Camera.forward * -size, m_Camera.up * size, m_Camera.right * size, HSVToRGB(colorFactor));
+    }
+    
+    float GetHandleSize(Vector3 position)
+    {
+        Camera current = Camera.current;
+        float result;
+        if (current)
+        {
+            position = m_Matrix.MultiplyPoint3x4(position);
+            Transform transform = m_Camera;
+            Vector3 position2 = transform.position;
+            float z = Vector3.Dot(position - position2, transform.TransformDirection(new Vector3(0f, 0f, 1f)));
+            Vector3 a = current.WorldToScreenPoint(position2 + transform.TransformDirection(new Vector3(0f, 0f, z)));
+            Vector3 b = current.WorldToScreenPoint(position2 + transform.TransformDirection(new Vector3(1f, 0f, z)));
+            float magnitude = (a - b).magnitude;
+            result = 80f / Mathf.Max(magnitude, 0.0001f) * EditorGUIUtility.pixelsPerPoint;
+        }
+        else
+        {
+            result = 20f;
+        }
+        return result;
+    }
+    
+    // Simplified HSVToRGB with S, V always 1
+    public static Color HSVToRGB(float H)
+        {
+            Color white = Color.white;
+  
+            float num = H * 6f;
+		    float num2 = Mathf.Floor(num);
+		    float num3 = num - num2;
+            float num5 = 1f - num3;
+            float num6 = num3;
+            switch ((int)num2 + 1)
+            {
+                case 0:
+                    white.r = 1;
+                    white.g = 0;
+                    white.b = num5;
+                    break;
+                case 1:
+                    white.r = 1;
+                    white.g = num6;
+                    white.b = 0;
+                    break;
+                case 2:
+                    white.r = num5;
+                    white.g = 1;
+                    white.b = 0;
+                    break;
+                case 3:
+                    white.r = 0;
+                    white.g = 1;
+                    white.b = num6;
+                    break;
+                case 4:
+                    white.r = 0;
+                    white.g = num5;
+                    white.b = 1;
+                    break;
+                case 5:
+                    white.r = num6;
+                    white.g = 0;
+                    white.b = 1;
+                    break;
+                case 6:
+                    white.r = 1;
+                    white.g = 0;
+                    white.b = num5;
+                    break;
+                case 7:
+                    white.r = 1;
+                    white.g = num6;
+                    white.b = 0;
+                    break;
+            }
+            return white;
+        }
 
-    public void Init (bool color, int uvs) {
-        m_useColor = color;
-        m_useUV = uvs;
+    public void Init (Transform transform, bool depth, bool equalSize) {
+        
+        if (!m_Mesh) {
+            m_Mesh = new Mesh();
+            m_Mesh.hideFlags = HideFlags.DontSave;
+        }
+        
+        InitMaterial(depth);
 
         m_Vertices.Clear();
-        m_Indices.Clear();
-        if (color)
-            ClearOrNew(ref m_Color);
-        if (uvs >= 1)
-            ClearOrNew(ref m_UV);
-        if (uvs >= 2)
-            ClearOrNew(ref m_UV2);
-        if (uvs >= 3)
-            ClearOrNew(ref m_UV3);
-        if (uvs >= 4)
-            ClearOrNew(ref m_UV4);
+        m_Color.Clear();
+        m_Lines.Clear();
+        m_Quads.Clear();
+
+        m_Matrix = transform.localToWorldMatrix;
+        m_Camera = Camera.current.transform;
+        m_EqualSize = equalSize;
+        m_Layer = transform.gameObject.layer;
     }
-
-    void ClearOrNew<T>(ref XList<T> l) {
-        if (l == null)
-            l = new XList<T>();
-         else
-            l.Clear();
+    
+    void InitMaterial (bool writeDepth)
+	{
+		if (!m_Material)
+		{
+			// Unity has a built-in shader that is useful for drawing
+			// simple colored things.
+			var shader = Shader.Find ("Hidden/Internal-Colored");
+			m_Material = new Material (shader);
+			m_Material.hideFlags = HideFlags.DontSave;
+			// Turn on alpha blending
+			m_Material.SetInt ("_SrcBlend", (int)BlendMode.SrcAlpha);
+            m_Material.SetInt ("_DstBlend", (int)BlendMode.OneMinusSrcAlpha);
+			// Turn backface culling off
+			m_Material.SetInt ("_Cull", (int)CullMode.Off);
+			// Turn off depth writes
+			m_Material.SetInt ("_ZWrite", 0);
+		}
+        // Set external depth on/off
+        m_Material.SetInt ("_ZTest", writeDepth ? 4 : 0);
+	}
+    
+    public void End () {
+        m_Mesh.Clear();
+        
+        m_Mesh.SetVertices(m_Vertices);
+        m_Mesh.SetColors(m_Color);
+        m_Mesh.subMeshCount = 2;
+        m_Mesh.SetIndices(m_Lines.ToArray(), MeshTopology.Lines, 0);
+        m_Mesh.SetIndices(m_Quads.ToArray(), MeshTopology.Quads, 1);
+        //m_Mesh.RecalculateNormals();
+        m_Mesh.RecalculateBounds();
     }
-
-
-    public void Vertex3(Vector3 pos) {
-        m_Vertices.Add(pos);
+    
+    void OnRenderScene (SceneView view) {
+        
+         {
+            m_Material.SetPass(0);
+            
+            Graphics.DrawMeshNow(m_Mesh, m_Matrix, 0);
+        }    Graphics.DrawMeshNow(m_Mesh, m_Matrix, 1);
+        
     }
-
-
-    public void Vertex3(Vector3 pos, Color color) {
-        m_Vertices.Add(pos);
-        m_Color.Add(color);  
-    }
-
-
-    public void Vertex3(Vector3 pos, Color color, Vector4 uv) {
-        m_Vertices.Add(pos);
-        m_Color.Add(color);
-        m_UV.Add(uv);     
-    }
-
-
-    public void Vertex3(Vector3 pos, Color color, Vector4 uv, Vector4 uv2) {
-        m_Vertices.Add(pos);
-        m_Color.Add(color);
-        m_UV.Add(uv);     
-        m_UV2.Add(uv2);
-    }
-
-    public void Vertex3(Vector3 pos, Color color, Vector4 uv, Vector4 uv2, Vector4 uv3) {
-        m_Vertices.Add(pos);
-        m_Color.Add(color);
-        m_UV.Add(uv);     
-        m_UV2.Add(uv2);
-        m_UV3.Add(uv3); 
-    }
-
-    public void Vertex3(Vector3 pos, Color color, Vector4 uv, Vector4 uv2, Vector4 uv3, Vector4 uv4) {
-        m_Vertices.Add(pos);
-        m_Color.Add(color);
-        m_UV.Add(uv);     
-        m_UV2.Add(uv2);
-        m_UV3.Add(uv3);
-        m_UV4.Add(uv4);  
-    }
-
-    public void MakeQuad()
-    {
-        var size = m_Vertices.Count;
-        MakeQuad(size--, size--, size--, size--);
-    }
-
-    public void MakeQuad(int a, int b, int c, int d)
-    {
-        var size = m_Indices.Count;
-        m_Indices.AddEmpty(6);
-        var buff = m_Indices.buffer;
-        buff[size++] = a;
-        buff[size++] = b;
-        buff[size++] = c;
-        buff[size++] = b;
-        buff[size++] = c;
-        buff[size++] = d;
-    }
-
-    public void FillMesh(Mesh m) {
-        m.Clear();
-        var del = GetInternalMeshUploader(m);
-
-        del(0, 0, 3, m_Vertices.buffer, m_Vertices.Count);
-        if (m_useColor)
-            del(2, 2, 3, m_Color.buffer, m_Color.Count);
-        if (m_useUV >= 1)
-            del(3, 0, 3, m_UV.buffer, m_UV.Count);
-        if (m_useUV >= 2)
-            del(4, 0, 3, m_UV2.buffer, m_UV2.Count);
-        if (m_useUV >= 3)
-            del(5, 0, 3, m_UV3.buffer, m_UV3.Count);
-        if (m_useUV >= 4)
-            del(6, 0, 3, m_UV4.buffer, m_UV4.Count);
-
-        var tris = GetInternalTriangleUploader(m);
-        tris(m_Indices.buffer, 0, true); 
-        m.RecalculateBounds();
-    }
-
-
-    static InternalUploaderDelegate GetInternalMeshUploader(Mesh m) {
-        var method = typeof(Mesh).GetMethod("SetSizedArrayForChannel", BindingFlags.NonPublic | BindingFlags.InvokeMethod | BindingFlags.Instance);
-        return (InternalUploaderDelegate)Delegate.CreateDelegate(typeof(InternalUploaderDelegate), m, method);
-    }
-
-    static TriangleUploaderDelegate GetInternalTriangleUploader(Mesh m) {
-        var method = typeof(Mesh).GetMethod("SetTrianglesImpl", BindingFlags.NonPublic | BindingFlags.InvokeMethod | BindingFlags.Instance);
-        return (TriangleUploaderDelegate)Delegate.CreateDelegate(typeof(TriangleUploaderDelegate), m, method);
-    }
-
-    delegate void TriangleUploaderDelegate(int[] triangles, int submesh, bool calculateBounds);
-
-    delegate void InternalUploaderDelegate(object channel, object format, object dim, object values, object count);
-
-
-    internal enum MeshChannel
-    {
-        Vertex,
-        Normal,
-        Color,
-        TexCoord0,
-        TexCoord1,
-        TexCoord2,
-        TexCoord3,
-        Tangent
-    }
-
-    internal enum EmpEnum
-    {
-    }
-
-    internal enum MeshFormat
-    {
-        Vertex,
-        Color = 2,
-    }
+    
 }
