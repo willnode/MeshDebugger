@@ -1,12 +1,9 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using UnityEditor;
 using UnityEngine;
-using UnityEditor;
-using System;
 using UnityEngine.Rendering;
 
-public class MeshInspector : MonoBehaviour {
-
+public class MeshInspector : MonoBehaviour
+{
     public Mesh m_Mesh;
     public IMGizmos m_Gizmo;
 
@@ -17,39 +14,49 @@ public class MeshInspector : MonoBehaviour {
     public float m_HeatSize = .2f;
     public bool m_UseHeatmap;
     public bool m_EqualizeGizmoSize;
+
     [Space]
     public bool m_DebugNormalVerts;
+
     public bool m_DebugTangentVerts;
     public bool m_DebugBinormalVerts;
     public bool m_DebugTriangleNormal;
+
     [Space]
     public bool m_DebugTriangleOrder;
+
     public bool m_DebugTriangleHotness;
     public bool m_DebugTriangleSubmesh;
+
     [Space]
     public bool m_DebugVertIndex;
+
     public bool m_DebugVertUsed;
     public bool m_DebugVertDuplis;
+
     [Space]
-    
-    Transform m_sceneCam;
-    Vector3 m_sceneCamPos;
+    private Transform m_sceneCam;
 
-    Matrix4x4 m_matrix;
-    MeshInfo m_cpu = new MeshInfo();
+    private Vector3 m_sceneCamPos;
 
-    bool m_hasUpdated = false;
+    private Matrix4x4 m_matrix;
+    private MeshInfo m_cpu = new MeshInfo();
+
+    private bool m_hasUpdated = false;
 
     // Update is called once per frame
-    void OnDrawGizmosSelected () {
-		if (!enabled)
+    private void OnDrawGizmosSelected()
+    {
+        if (!enabled)
             return;
+
         m_sceneCam = SceneView.lastActiveSceneView.camera.transform;
         m_sceneCamPos = m_sceneCam.position;
-        
-        if (!m_Mesh) {
+
+        if (!m_Mesh)
+        {
             m_Mesh = GetComponent<MeshFilter>().sharedMesh;
-			if (!m_Mesh)
+            if (!m_Mesh)
                 return;
         }
         if (m_Gizmo == null)
@@ -62,24 +69,26 @@ public class MeshInspector : MonoBehaviour {
             return;
 
         m_Gizmo.Init(transform, m_DepthCulling, m_EqualizeGizmoSize);
-        
+
         Handles.matrix = m_matrix = transform.localToWorldMatrix;
 
-        if (m_DebugNormalVerts || m_DebugTangentVerts || m_DebugBinormalVerts) {
+        if (m_DebugNormalVerts || m_DebugTangentVerts || m_DebugBinormalVerts)
+        {
             Color blue = Color.blue, green = Color.green, red = Color.red;
             for (int i = 0; i < m_cpu.m_VertCount; i++)
-			{
-				var vert = m_cpu.m_Verts[i];
-                if (m_DebugNormalVerts) 
-                    m_Gizmo.AddRay(vert, m_cpu.m_Normals[0][i] * m_RaySize, blue);                
-                if (m_DebugTangentVerts) 
+            {
+                var vert = m_cpu.m_Verts[i];
+                if (m_DebugNormalVerts)
+                    m_Gizmo.AddRay(vert, m_cpu.m_Normals[0][i] * m_RaySize, blue);
+                if (m_DebugTangentVerts)
                     m_Gizmo.AddRay(vert, m_cpu.m_Normals[1][i] * m_RaySize, green);
-                if (m_DebugBinormalVerts) 
-                    m_Gizmo.AddRay(vert, m_cpu.m_Normals[2][i] * m_RaySize, red);                
+                if (m_DebugBinormalVerts)
+                    m_Gizmo.AddRay(vert, m_cpu.m_Normals[2][i] * m_RaySize, red);
             }
-		}
-        
-        if (m_DebugTriangleNormal) {
+        }
+
+        if (m_DebugTriangleNormal)
+        {
             for (int i = 0; i < m_cpu.m_MeshSubmeshCount; i++)
             {
                 var norms = m_cpu.m_IndiceNormals[i];
@@ -90,8 +99,8 @@ public class MeshInspector : MonoBehaviour {
                     m_Gizmo.AddRay(vert, norms[j] * m_RaySize, Color.yellow);
                 }
             }
-        }		
-        
+        }
+
         if (m_UseHeatmap)
         {
             if (m_DebugTriangleOrder)
@@ -134,21 +143,19 @@ public class MeshInspector : MonoBehaviour {
         m_hasUpdated = true;
     }
 
-    void OnValidate () {
+    private void OnValidate()
+    {
         m_hasUpdated = false;
     }
-    /*string m_infoTris;
-    string GetTrisInfo (int iter, int submesh, int index) {
-        return string.Format(m_infoTris, 
-    }*/
 
-    bool IsFacingCamera (Vector3 pos, Vector3 normal) {
+    private bool IsFacingCamera(Vector3 pos, Vector3 normal)
+    {
         return new Plane(m_matrix.MultiplyVector(normal), m_matrix.MultiplyPoint3x4(pos)).GetSide(m_sceneCamPos);
-	}
-    
+    }
 
-    void InitGL (int mode, bool keepWorldSpace) {
-    	// Use GL for replacement of Handles
+    private void InitGL(int mode, bool keepWorldSpace)
+    {
+        // Use GL for replacement of Handles
         CreateLineMaterial(m_DepthCulling);
         lineMaterial.SetPass(0);
 
@@ -159,25 +166,26 @@ public class MeshInspector : MonoBehaviour {
 
         // Draw lines
         GL.Begin(mode);
-	}
-    
-    void EndGL () {
-	    GL.End();
+    }
+
+    private void EndGL()
+    {
+        GL.End();
         GL.PopMatrix();
     }
-    
-    void SetColorGL (Color color)
+
+    private void SetColorGL(Color color)
     {
         GL.Color(color);
     }
-    
-    void DrawRay(Vector3 pos, Vector3 dir, Color color)
+
+    private void DrawRay(Vector3 pos, Vector3 dir, Color color)
     {
         SetColorGL(color);
         DrawLine(pos, pos + dir);
     }
-    
-    void DrawLine(Vector3 start, Vector3 end)
+
+    private void DrawLine(Vector3 start, Vector3 end)
     {
         // One vertex at transform position
         GL.Vertex(start);
@@ -185,73 +193,64 @@ public class MeshInspector : MonoBehaviour {
         GL.Vertex(end);
     }
 
-    void DrawRect(Vector3 pos, float size)
+    private void DrawRect(Vector3 pos, float size)
     {
         pos = m_matrix.MultiplyPoint3x4(pos);
         Vector3 b = m_sceneCam.right * size;
-		Vector3 b2 = m_sceneCam.up * size;
-		GL.Vertex(pos + b + b2);
-		GL.Vertex(pos + b - b2);
-		GL.Vertex(pos - b - b2);
-		GL.Vertex(pos - b + b2);
+        Vector3 b2 = m_sceneCam.up * size;
+        GL.Vertex(pos + b + b2);
+        GL.Vertex(pos + b - b2);
+        GL.Vertex(pos - b - b2);
+        GL.Vertex(pos - b + b2);
     }
 
+    private static GUIContent m_gui = new GUIContent();
 
+    private void DrawLabel(Vector3 pos, Vector3 normal, string text)
+    {
+        if (m_DepthCulling && (!IsFacingCamera(pos, normal)))
+            return;
 
-    static GUIContent m_gui = new GUIContent();
-    
-    void DrawLabel (Vector3 pos, Vector3 normal, string text)
-	{
-		
-        if (m_DepthCulling && (!IsFacingCamera(pos, normal))) 
-			return;
-		
         m_gui.text = text;
-        var GUIPos = HandleUtility.WorldPointToSizedRect (pos, m_gui, Styles.blockLabel);
-		GUIPos.y -= 7f;
-		GUI.Label (GUIPos, m_gui, Styles.blockLabel);	
-	}
+        var GUIPos = HandleUtility.WorldPointToSizedRect(pos, m_gui, Styles.blockLabel);
+        GUIPos.y -= 7f;
+        GUI.Label(GUIPos, m_gui, Styles.blockLabel);
+    }
 
-    
-
-
-    
     public Material lineMaterial;
-	void CreateLineMaterial (bool writeDepth)
-	{
-		if (!lineMaterial)
-		{
-			// Unity has a built-in shader that is useful for drawing
-			// simple colored things.
-			var shader = Shader.Find ("Hidden/Internal-Colored");
-			lineMaterial = new Material (shader);
-			lineMaterial.hideFlags = HideFlags.DontSave;
-			// Turn on alpha blending
-			lineMaterial.SetInt ("_SrcBlend", (int)BlendMode.SrcAlpha);
-            lineMaterial.SetInt ("_DstBlend", (int)BlendMode.OneMinusSrcAlpha);
-			// Turn backface culling off
-			lineMaterial.SetInt ("_Cull", (int)CullMode.Off);
-			// Turn off depth writes
-			lineMaterial.SetInt ("_ZWrite", 0);
-		}
+
+    private void CreateLineMaterial(bool writeDepth)
+    {
+        if (!lineMaterial)
+        {
+            // Unity has a built-in shader that is useful for drawing
+            // simple colored things.
+            var shader = Shader.Find("Hidden/Internal-Colored");
+            lineMaterial = new Material(shader);
+            lineMaterial.hideFlags = HideFlags.DontSave;
+            // Turn on alpha blending
+            lineMaterial.SetInt("_SrcBlend", (int)BlendMode.SrcAlpha);
+            lineMaterial.SetInt("_DstBlend", (int)BlendMode.OneMinusSrcAlpha);
+            // Turn backface culling off
+            lineMaterial.SetInt("_Cull", (int)CullMode.Off);
+            // Turn off depth writes
+            lineMaterial.SetInt("_ZWrite", 0);
+        }
         // Set external depth on/off
-        lineMaterial.SetInt ("_ZTest", writeDepth ? 4 : 0);
-	}
+        lineMaterial.SetInt("_ZTest", writeDepth ? 4 : 0);
+    }
 
     static public class Styles
     {
-		static public GUIStyle blockLabel = new GUIStyle (EditorStyles.boldLabel);
-		
-		static Styles ()
-		{
-			blockLabel.normal.background = EditorGUIUtility.whiteTexture;
-			blockLabel.margin = new RectOffset ();//2, 2, 1, 1);
-			blockLabel.padding = new	RectOffset ();
-			blockLabel.alignment = TextAnchor.MiddleCenter;
-			//blockLabel.contentOffset = new Vector2(0, -10f);
-		}
+        static public GUIStyle blockLabel = new GUIStyle(EditorStyles.boldLabel);
+
+        static Styles()
+        {
+            blockLabel.normal.background = EditorGUIUtility.whiteTexture;
+            blockLabel.margin = new RectOffset();//2, 2, 1, 1);
+            blockLabel.padding = new RectOffset();
+            blockLabel.alignment = TextAnchor.MiddleCenter;
+            //blockLabel.contentOffset = new Vector2(0, -10f);
+        }
     }
-    
-    
- 
 }
