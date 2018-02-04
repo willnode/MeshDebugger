@@ -1,20 +1,18 @@
 using System.Collections.Generic;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
 
+// Lightweight, Fast immediate mesh drawing. Works in runtime actually!
 public class IMGizmo : ScriptableObject
 {
     private void OnEnable()
     {
         hideFlags = HideFlags.DontSave;
-        SceneView.onSceneGUIDelegate += OnRenderScene;
     }
 
     private void OnDisable()
     {
         Clear();
-        SceneView.onSceneGUIDelegate -= OnRenderScene;
     }
 
     private void OnDestroy()
@@ -97,7 +95,7 @@ public class IMGizmo : ScriptableObject
             Vector3 a = current.WorldToScreenPoint(position2 + transform.TransformDirection(new Vector3(0f, 0f, z)));
             Vector3 b = current.WorldToScreenPoint(position2 + transform.TransformDirection(new Vector3(1f, 0f, z)));
             float magnitude = (a - b).magnitude;
-            result = 80f / Mathf.Max(magnitude, 0.0001f) * EditorGUIUtility.pixelsPerPoint;
+            result = 80f / Mathf.Max(magnitude, 0.0001f) * UnityEditor.EditorGUIUtility.pixelsPerPoint;
         }
         else
         {
@@ -169,7 +167,7 @@ public class IMGizmo : ScriptableObject
         return white;
     }
 
-    public void Init(Transform transform, bool depth, bool equalSize)
+    public void Init(Transform transform, Transform camera, bool depth, bool equalSize)
     {
         if (!m_Mesh)
         {
@@ -185,7 +183,7 @@ public class IMGizmo : ScriptableObject
         m_Quads.Clear();
 
         m_Matrix = transform.localToWorldMatrix;
-        m_Camera = Camera.current.transform;
+        m_Camera = camera;
         m_EqualSize = equalSize;
         m_Layer = transform.gameObject.layer;
     }
@@ -234,7 +232,7 @@ public class IMGizmo : ScriptableObject
 
     }
 
-    private void OnRenderScene(SceneView view)
+    public void Render()
     {
         m_Material.SetPass(0);
         Graphics.DrawMeshNow(m_Mesh, m_Matrix, 0);
