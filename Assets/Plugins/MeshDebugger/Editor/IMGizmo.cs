@@ -17,21 +17,27 @@ public class IMGizmo : ScriptableObject
 
     private void OnDestroy()
     {
-       if (m_Mesh) DestroyImmediate(m_Mesh);
+        if (m_Mesh)
+        {
+            DestroyImmediate(m_Mesh);
+            DestroyImmediate(m_LineMaterial);
+            DestroyImmediate(m_QuadMaterial);
+        }
     }
 
     public Transform m_Camera;
     public Mesh m_Mesh;
-    public Material m_Material;
+    public Material m_LineMaterial;
+    public Material m_QuadMaterial;
     public Matrix4x4 m_Matrix;
     public bool m_EqualSize;
     public bool m_Active = true;
-    public int m_Layer = 0;
-
+  
     public List<Vector3> m_Vertices = new List<Vector3>(16);
     public List<Color> m_Color = new List<Color>(16);
     public List<int> m_Lines = new List<int>(16);
     public List<int> m_Quads = new List<int>(16);
+    public List<Vector2> m_UV = new List<Vector2>(16);
 
     public void AddLine(Vector3 start, Vector3 end, Color color)
     {
@@ -42,6 +48,8 @@ public class IMGizmo : ScriptableObject
         m_Lines.Add(m - 1);
         m_Color.Add(color);
         m_Color.Add(color);
+        m_UV.Add(default(Vector2));
+        m_UV.Add(default(Vector2));
     }
 
     public void AddRay(Vector3 pos, Vector3 dir, Color color)
@@ -51,12 +59,12 @@ public class IMGizmo : ScriptableObject
         AddLine(pos, pos + dir, color);
     }
 
-    public void AddQuad(Vector3 pos, Vector3 up, Vector3 right, Color color)
+    public void AddQuad(Vector3 pos, Vector2 size, Color color)
     {
-        m_Vertices.Add(pos + up - right);
-        m_Vertices.Add(pos - up - right);
-        m_Vertices.Add(pos - up + right);
-        m_Vertices.Add(pos + up + right);
+        m_Vertices.Add(pos);
+        m_Vertices.Add(pos);
+        m_Vertices.Add(pos);
+        m_Vertices.Add(pos);
         var m = m_Vertices.Count;
         m_Quads.Add(m - 4);
         m_Quads.Add(m - 3);
@@ -66,20 +74,24 @@ public class IMGizmo : ScriptableObject
         m_Color.Add(color);
         m_Color.Add(color);
         m_Color.Add(color);
+        m_UV.Add(new Vector2(-size.x, -size.y));
+        m_UV.Add(new Vector2(size.x, -size.y));
+        m_UV.Add(new Vector2(size.x, size.y));
+        m_UV.Add(new Vector2(-size.x, size.y));
     }
 
     public void AddQuad(Vector3 pos, float size, Color color)
     {
         if (m_EqualSize)
             size *= GetHandleSize(pos);
-        AddQuad(pos, m_Camera.up * size, m_Camera.right * size, color);
+        AddQuad(pos, Vector2.one * size, color);
     }
 
     public void AddQuad(Vector3 pos, float size, float colorFactor)
     {
         if (m_EqualSize)
             size *= GetHandleSize(pos);
-        AddQuad(pos + m_Camera.forward * -size, m_Camera.up * size, m_Camera.right * size, HSVToRGB(colorFactor));
+        AddQuad(pos, Vector2.one * size, HSVToRGB(colorFactor));
     }
 
     private float GetHandleSize(Vector3 position)
@@ -181,32 +193,32 @@ public class IMGizmo : ScriptableObject
         m_Color.Clear();
         m_Lines.Clear();
         m_Quads.Clear();
+        m_UV.Clear();
 
         m_Matrix = transform.localToWorldMatrix;
         m_Camera = camera;
         m_EqualSize = equalSize;
-        m_Layer = transform.gameObject.layer;
+    }
+
+    public void UpdateGO(Transform transform)
+    {
+        m_Matrix = transform.localToWorldMatrix;
     }
 
     private void InitMaterial(bool writeDepth)
     {
-        if (!m_Material)
+        if (!m_LineMaterial)
         {
-            // Unity has a built-in shader that is useful for drawing
-            // simple colored things.
-            var shader = Shader.Find("Hidden/Internal-Colored");
-            m_Material = new Material(shader);
-            m_Material.hideFlags = HideFlags.DontSave;
-            // Turn on alpha blending
-            m_Material.SetInt("_SrcBlend", (int)BlendMode.SrcAlpha);
-            m_Material.SetInt("_DstBlend", (int)BlendMode.OneMinusSrcAlpha);
-            // Turn backface culling off
-            m_Material.SetInt("_Cull", (int)CullMode.Off);
-            // Turn off depth writes
-            m_Material.SetInt("_ZWrite", 0);
+            var shader = Shader.Find("Hidden/InternalLineColorful");
+            m_LineMaterial = new Material(shader);
+            m_LineMaterial.hideFlags = HideFlags.DontSave;
+            var shader2 = Shader.Find("Hidden/InternalQuadColorful");
+            m_QuadMaterial = new Material(shader2);
+            m_QuadMaterial.hideFlags = HideFlags.DontSave;
         }
         // Set external depth on/off
-        m_Material.SetInt("_ZTest", writeDepth ? 4 : 0);
+        m_LineMaterial.SetInt("_ZTest", writeDepth ? 4 : 0);
+        m_QuadMaterial.SetInt("_ZTest", writeDepth ? 4 : 0);
     }
 
     public void End()
@@ -215,6 +227,7 @@ public class IMGizmo : ScriptableObject
 
         m_Mesh.SetVertices(m_Vertices);
         m_Mesh.SetColors(m_Color);
+        m_Mesh.SetUVs(0, m_UV);
         m_Mesh.subMeshCount = 2;
         m_Mesh.SetIndices(m_Lines.ToArray(), MeshTopology.Lines, 0);
         m_Mesh.SetIndices(m_Quads.ToArray(), MeshTopology.Quads, 1);
@@ -229,13 +242,15 @@ public class IMGizmo : ScriptableObject
         m_Color.Clear();
         m_Lines.Clear();
         m_Quads.Clear();
+        m_UV.Clear();
 
     }
 
     public void Render()
     {
-        m_Material.SetPass(0);
+        m_LineMaterial.SetPass(0);
         Graphics.DrawMeshNow(m_Mesh, m_Matrix, 0);
+        m_QuadMaterial.SetPass(0);
         Graphics.DrawMeshNow(m_Mesh, m_Matrix, 1);
     }
 }

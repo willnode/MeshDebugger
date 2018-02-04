@@ -23,16 +23,16 @@ public class IMGizmos : IDisposable
         m_Gizmos[m_CurIter].AddRay(pos, dir, color);
     }
 
-    public void AddQuad(Vector3 pos, Vector3 up, Vector3 right, Color color)
+    public void AddQuad(Vector3 pos, Vector2 size, Color color)
     {
         ValidateCurrentIter(4);
-        m_Gizmos[m_CurIter].AddQuad(pos, up, right, color);
+        m_Gizmos[m_CurIter].AddQuad(pos, size, color);
     }
 
     public void AddQuad(Vector3 pos, float size, Color color)
     {
         ValidateCurrentIter(4);
-        m_Gizmos[m_CurIter].AddQuad(pos, size, color);
+        m_Gizmos[m_CurIter].AddQuad(pos, Vector2.one * size, color);
     }
 
     public void AddQuad(Vector3 pos, float size, float colorFactor)
@@ -52,10 +52,16 @@ public class IMGizmos : IDisposable
         else
             m_Gizmos[m_CurIter].m_Active = true;
     }
-    
+
+    private Transform _transform;
+    private Transform _camera;
+    private bool _depth;
+    private bool _equalSize;
+
     private void CreateNewIter()
     {
         var giz = ScriptableObject.CreateInstance<IMGizmo>();
+        giz.Init(_transform, _camera, _depth, _equalSize);
         m_Gizmos.Add(giz);
     }
 
@@ -70,6 +76,10 @@ public class IMGizmos : IDisposable
             m_Gizmos[i].m_Active = i == 0;
             m_Gizmos[i].Init(transform, camera, depth, equalSize);
         }
+        _transform = transform;
+        _camera = camera;
+        _depth = depth;
+        _equalSize = equalSize;
     }
 
     public void End()
@@ -85,7 +95,8 @@ public class IMGizmos : IDisposable
     {
         for (int i = 0; i < m_Gizmos.Count; i++)
         {
-            m_Gizmos[i].Render();
+            if (m_Gizmos[i].m_Active)
+                m_Gizmos[i].Render();
         }
     }
 
@@ -102,6 +113,15 @@ public class IMGizmos : IDisposable
         foreach (var item in m_Gizmos)
         {
             item.Clear();
+        }
+    }
+
+    internal void UpdateGO(Transform transform)
+    {
+        for (int i = 0; i < m_Gizmos.Count; i++)
+        {
+            if (m_Gizmos[i].m_Active)
+                m_Gizmos[i].UpdateGO(transform);
         }
     }
 }

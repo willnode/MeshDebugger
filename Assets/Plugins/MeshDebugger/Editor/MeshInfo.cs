@@ -8,7 +8,7 @@ using UnityEngine;
 public class MeshInfo
 {
     public Mesh m_Mesh;
-    private int m_lastMeshId = -1;
+    public int m_lastMeshId = -1;
     public bool m_MeshReadable;
     public Bounds m_MeshBounds;
     public int m_VertCount;

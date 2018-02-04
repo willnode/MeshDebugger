@@ -1,7 +1,8 @@
 ﻿
 Shader "Debug/UV" {
 	Properties{
-	[Enum(UV,1,UV2,2,UV3,3,UV4,4)]	UV_Mode("Selected UV", Int) = 1
+		[Enum(UV,1,UV2,2,UV3,3,UV4,4)]	
+		UV_Mode("Selected UV", Int) = 1
 	}
 		SubShader{
 			Pass {

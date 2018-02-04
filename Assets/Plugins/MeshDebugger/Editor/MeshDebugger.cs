@@ -10,7 +10,7 @@ public class MeshDebugger : EditorWindow
     public Transform m_Transform;
     public IMGizmos m_Gizmo = new IMGizmos();
 
-    public bool m_Static;
+    public bool m_Static = true;
     public bool m_DepthCulling;
     public bool m_EqualizeGizmoSize;
 
@@ -75,17 +75,10 @@ public class MeshDebugger : EditorWindow
             var m = m_Transform.GetComponent<MeshFilter>();
             if (m) m_Mesh = m.sharedMesh;
             else
-            {
-                var m2 = m_Transform.GetComponent<Graphic>();
-
-            }
+                m_Mesh = null;
         }
         else
         {
-            foreach (var item in m_Gizmo.m_Gizmos)
-            {
-                item.Clear();
-            }
             m_Mesh = null;
         }
         Repaint();
@@ -94,7 +87,13 @@ public class MeshDebugger : EditorWindow
     void OnGUI()
     {
         EditorGUI.BeginChangeCheck();
-        m_Transform = (Transform)EditorGUILayout.ObjectField("Target", m_Transform, typeof(Transform), true);
+        {
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.PrefixLabel("Target");
+            m_Transform = (Transform)EditorGUILayout.ObjectField(m_Transform, typeof(Transform), true);
+            m_Mesh = (Mesh)EditorGUILayout.ObjectField(m_Mesh, typeof(Mesh), true);
+            EditorGUILayout.EndHorizontal();
+        }
         {
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.PrefixLabel("Configuration");
@@ -163,6 +162,7 @@ public class MeshDebugger : EditorWindow
         {
             if (m_Gizmo != null)
                 m_Gizmo.Clear();
+            m_cpu.m_lastMeshId = -1;
             return;
         }
 
@@ -175,6 +175,7 @@ public class MeshDebugger : EditorWindow
             m_cpu.Update();
         else if (m_hasUpdated)
         {
+            m_Gizmo.UpdateGO(m_Transform);
             m_Gizmo.Render();
             return;
         }
@@ -216,6 +217,7 @@ public class MeshDebugger : EditorWindow
 
         if (m_UseHeatmap)
         {
+            // Vector3 fwd = m_Static ? default(Vector3) : m_sceneCam.forward * -m_HeatSize;
             float factor;
             switch (m_DebugTris)
             {
@@ -271,8 +273,8 @@ public class MeshDebugger : EditorWindow
         }
         else if (m_cpu.m_IndiceCount < 10000 && m_cpu.m_VertCount < 5000)
         {
-           // IMGUI is always slow. Better safe than sorry
-             
+            // IMGUI is always slow. Better safe than sorry
+
             Handles.BeginGUI();
             switch (m_DebugTris)
             {
