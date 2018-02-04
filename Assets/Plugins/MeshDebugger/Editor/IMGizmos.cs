@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
+// High management from IM Gizmos, with 65K mesh split!
 [Serializable]
 public class IMGizmos : IDisposable
 {
@@ -58,7 +59,7 @@ public class IMGizmos : IDisposable
         m_Gizmos.Add(giz);
     }
 
-    public void Init(Transform transform, bool depth, bool equalSize)
+    public void Init(Transform transform, Transform camera, bool depth, bool equalSize)
     {
         m_TotalVert = 0;
         m_CurIter = 0;
@@ -67,7 +68,7 @@ public class IMGizmos : IDisposable
         for (int i = 0; i < m_Gizmos.Count; i++)
         {
             m_Gizmos[i].m_Active = i == 0;
-            m_Gizmos[i].Init(transform, depth, equalSize);
+            m_Gizmos[i].Init(transform, camera, depth, equalSize);
         }
     }
 
@@ -80,11 +81,27 @@ public class IMGizmos : IDisposable
         }
     }
 
+    public void Render()
+    {
+        for (int i = 0; i < m_Gizmos.Count; i++)
+        {
+            m_Gizmos[i].Render();
+        }
+    }
+
     public void Dispose()
     {
         foreach (var item in m_Gizmos)
         {
             UnityEngine.Object.DestroyImmediate(item);
+        }
+    }
+
+    public void Clear()
+    {
+        foreach (var item in m_Gizmos)
+        {
+            item.Clear();
         }
     }
 }
