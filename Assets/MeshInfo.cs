@@ -1,14 +1,13 @@
-
-using System.Collections.Generic;
-using UnityEngine;
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 //[Serializable]
 public class MeshInfo
 {
     public Mesh m_Mesh;
-    int m_lastMeshId = -1;
+    private int m_lastMeshId = -1;
     public bool m_MeshReadable;
     public Bounds m_MeshBounds;
     public int m_VertCount;
@@ -34,8 +33,10 @@ public class MeshInfo
     public List<Color> m_Colors;
     public List<Vector4>[] m_UVs;
     public List<BoneWeight> m_BoneWeights;
+
     // Normal = 0, Tangent = 1, Bitangent = 2
     public List<Vector3>[] m_Normals;
+
     public List<float> m_NormalFlips;
 
     public bool hasUpdated
@@ -45,6 +46,7 @@ public class MeshInfo
             return m_Mesh && (m_Mesh.GetInstanceID() == m_lastMeshId);
         }
     }
+
     public void Update()
     {
         if (!m_Mesh)
@@ -90,7 +92,7 @@ public class MeshInfo
             {
                 Set(ref m_Indices[i], m_Mesh.GetIndices(i));
                 m_IndiceTypes[i] = m_Mesh.GetTopology(i);
-                m_IndiceOffsets[i] = iter; 
+                m_IndiceOffsets[i] = iter;
                 var steps = m_TopologyDivision[m_IndiceTypes[i]];
                 var indice = m_Indices[i];
                 var normal = m_Normals[0];
@@ -131,7 +133,7 @@ public class MeshInfo
             for (int i = 0; i < m_Verts.Count; i++)
             {
                 var v = m_Verts[i];
-                if(m_VertSimilars.ContainsKey(v))
+                if (m_VertSimilars.ContainsKey(v))
                     m_VertSimilars[v]++;
                 else
                     m_VertSimilars[v] = 1;
@@ -160,7 +162,7 @@ public class MeshInfo
             {MeshTopology.Triangles, 3},
         };
 
-    static float GetTriArea(Vector3 A, Vector3 B, Vector3 C)
+    private static float GetTriArea(Vector3 A, Vector3 B, Vector3 C)
     {
         var a = Vector3.Distance(B, C);
         var b = Vector3.Distance(A, C);
@@ -169,7 +171,7 @@ public class MeshInfo
         return Mathf.Sqrt(p * (p - a) * (p - b) * (p - c));
     }
 
-    static void Reset<T>(ref List<T> list)
+    private static void Reset<T>(ref List<T> list)
     {
         if (list == null)
             list = new List<T>();
@@ -177,7 +179,7 @@ public class MeshInfo
             list.Clear();
     }
 
-    static void Reset<K, V>(ref Dictionary<K, V> dict)
+    private static void Reset<K, V>(ref Dictionary<K, V> dict)
     {
         if (dict == null)
             dict = new Dictionary<K, V>();
@@ -185,7 +187,7 @@ public class MeshInfo
             dict.Clear();
     }
 
-    static void Resize<T>(ref List<T>[] list, int size, bool alsoClear = true)
+    private static void Resize<T>(ref List<T>[] list, int size, bool alsoClear = true)
     {
         if (list == null)
             list = new List<T>[size];
@@ -224,7 +226,7 @@ public class MeshInfo
         }
     }
 
-    static void Set<T>(ref List<T> list, T[] array)
+    private static void Set<T>(ref List<T> list, T[] array)
     {
         Reset<T>(ref list);
         list.AddRange(array);
