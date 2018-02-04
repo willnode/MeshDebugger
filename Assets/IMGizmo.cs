@@ -13,7 +13,13 @@ public class IMGizmo : ScriptableObject
 
     private void OnDisable()
     {
+        Clear();
         SceneView.onSceneGUIDelegate -= OnRenderScene;
+    }
+
+    private void OnDestroy()
+    {
+       if (m_Mesh) DestroyImmediate(m_Mesh);
     }
 
     public Transform m_Camera;
@@ -100,12 +106,12 @@ public class IMGizmo : ScriptableObject
         return result;
     }
 
-    // Simplified HSVToRGB with S, V always 1
+    // Modified HSVToRGB with SV always 1 and H ranges from 0-1 to 0-0.83 (Red to Magenta)
     public static Color HSVToRGB(float H)
     {
         Color white = Color.white;
 
-        float num = H * 6f;
+        float num = H * 5f;
         float num2 = Mathf.Floor(num);
         float num3 = num - num2;
         float num5 = 1f - num3;
@@ -168,7 +174,7 @@ public class IMGizmo : ScriptableObject
         if (!m_Mesh)
         {
             m_Mesh = new Mesh();
-            m_Mesh.hideFlags = HideFlags.DontSave;
+            m_Mesh.hideFlags = HideFlags.HideAndDontSave;
         }
 
         InitMaterial(depth);
@@ -215,6 +221,17 @@ public class IMGizmo : ScriptableObject
         m_Mesh.SetIndices(m_Lines.ToArray(), MeshTopology.Lines, 0);
         m_Mesh.SetIndices(m_Quads.ToArray(), MeshTopology.Quads, 1);
         m_Mesh.RecalculateBounds();
+    }
+
+    public void Clear()
+    {
+
+        m_Mesh.Clear();
+        m_Vertices.Clear();
+        m_Color.Clear();
+        m_Lines.Clear();
+        m_Quads.Clear();
+
     }
 
     private void OnRenderScene(SceneView view)
