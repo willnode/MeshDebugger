@@ -4,7 +4,7 @@ using UnityEngine.Rendering;
 using UnityEngine.UI;
 
 [ExecuteInEditMode]
-public class MeshDebugger : EditorWindow
+public partial class MeshDebugger : EditorWindow
 {
     public Mesh m_Mesh;
     public Transform m_Transform;
@@ -20,7 +20,7 @@ public class MeshDebugger : EditorWindow
     public bool m_DebugBinormalVerts;
     public bool m_DebugVertsToIndice;
     public bool m_DebugTrisNormal;
-    public float m_RaySize = .4f;
+    public float m_RaySize = .2f;
 
     public enum DebugTriangle { None, Index, Area, Submesh }
     public enum DebugVertice { None, Index, Shared, Duplicates }
@@ -29,7 +29,7 @@ public class MeshDebugger : EditorWindow
     public DebugTriangle m_DebugTris;
     public DebugVertice m_DebugVert;
     public bool m_UseHeatmap;
-    public float m_HeatSize = .2f;
+    public float m_HeatSize = .1f;
 
     [Space]
     private Transform m_sceneCam;
@@ -69,11 +69,27 @@ public class MeshDebugger : EditorWindow
 
     void OnSelectionChange()
     {
+        if (m_Transform && m_Transform.GetComponent<MeshDebuggerProxyUI>())
+        {
+            DestroyImmediate(m_Transform.GetComponent<MeshDebuggerProxyUI>());
+        }
+
         m_Transform = Selection.activeTransform;
         if (m_Transform)
         {
             var m = m_Transform.GetComponent<MeshFilter>();
+            var m2 = m_Transform.GetComponent<Graphic>();
             if (m) m_Mesh = m.sharedMesh;
+            else if (m2)
+            {
+                var m3 = m_Transform.gameObject.AddComponent<MeshDebuggerProxyUI>();
+                m_Mesh = null;
+                m3.callback += () =>
+                {
+                    m_Mesh = m3.mesh;
+                    m_hasUpdated = false;
+                };
+            }
             else
                 m_Mesh = null;
         }
@@ -82,74 +98,6 @@ public class MeshDebugger : EditorWindow
             m_Mesh = null;
         }
         Repaint();
-    }
-
-    void OnGUI()
-    {
-        EditorGUI.BeginChangeCheck();
-        {
-            EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.PrefixLabel("Target");
-            m_Transform = (Transform)EditorGUILayout.ObjectField(m_Transform, typeof(Transform), true);
-            m_Mesh = (Mesh)EditorGUILayout.ObjectField(m_Mesh, typeof(Mesh), true);
-            EditorGUILayout.EndHorizontal();
-        }
-        {
-            EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.PrefixLabel("Configuration");
-            m_Static = GUILayout.Toggle(m_Static, "Static", EditorStyles.miniButtonLeft);
-            m_DepthCulling = GUILayout.Toggle(m_DepthCulling, "Depth Culling", EditorStyles.miniButtonMid);
-            m_EqualizeGizmoSize = GUILayout.Toggle(m_EqualizeGizmoSize, "Equalize", EditorStyles.miniButtonRight);
-            EditorGUILayout.EndHorizontal();
-        }
-        m_RaySize = EditorGUILayout.Slider("Ray Size", m_RaySize, 0, 2);
-        {
-            EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.PrefixLabel("Vertex Rays");
-            m_DebugNormalVerts = GUILayout.Toggle(m_DebugNormalVerts, "Normal", EditorStyles.miniButtonLeft);
-            m_DebugTangentVerts = GUILayout.Toggle(m_DebugTangentVerts, "Tangent", EditorStyles.miniButtonMid);
-            m_DebugBinormalVerts = GUILayout.Toggle(m_DebugBinormalVerts, "Bitangent", EditorStyles.miniButtonRight);
-            EditorGUILayout.EndHorizontal();
-        }
-        {
-            EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.PrefixLabel("Additional Rays");
-            m_DebugVertsToIndice = GUILayout.Toggle(m_DebugVertsToIndice, "Verts to Indice", EditorStyles.miniButtonLeft);
-            m_DebugTrisNormal = GUILayout.Toggle(m_DebugTrisNormal, "Triangle Normal", EditorStyles.miniButtonRight);
-            EditorGUILayout.EndHorizontal();
-        }
-        {
-            EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.PrefixLabel("Use Heatmap");
-            m_UseHeatmap = EditorGUILayout.Toggle(m_UseHeatmap);
-            EditorGUI.BeginDisabledGroup(!m_UseHeatmap);
-            m_HeatSize = EditorGUILayout.Slider(m_HeatSize, 0, 1);
-            EditorGUI.EndDisabledGroup();
-            EditorGUILayout.EndHorizontal();
-        }
-        {
-            EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.PrefixLabel("Debug Vertices");
-            if (GUILayout.Toggle(m_DebugVert == DebugVertice.None, "None", EditorStyles.miniButtonLeft)) m_DebugVert = DebugVertice.None;
-            if (GUILayout.Toggle(m_DebugVert == DebugVertice.Index, "Index", EditorStyles.miniButtonMid)) m_DebugVert = DebugVertice.Index;
-            if (GUILayout.Toggle(m_DebugVert == DebugVertice.Shared, "Shared", EditorStyles.miniButtonMid)) m_DebugVert = DebugVertice.Shared;
-            if (GUILayout.Toggle(m_DebugVert == DebugVertice.Duplicates, "Duplicates", EditorStyles.miniButtonRight)) m_DebugVert = DebugVertice.Duplicates;
-            EditorGUILayout.EndHorizontal();
-        }
-        {
-            EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.PrefixLabel("Debug Triangles");
-            if (GUILayout.Toggle(m_DebugTris == DebugTriangle.None, "None", EditorStyles.miniButtonLeft)) m_DebugTris = DebugTriangle.None;
-            if (GUILayout.Toggle(m_DebugTris == DebugTriangle.Index, "Index", EditorStyles.miniButtonMid)) m_DebugTris = DebugTriangle.Index;
-            if (GUILayout.Toggle(m_DebugTris == DebugTriangle.Area, "Area", EditorStyles.miniButtonMid)) m_DebugTris = DebugTriangle.Area;
-            if (GUILayout.Toggle(m_DebugTris == DebugTriangle.Submesh, "Submesh", EditorStyles.miniButtonRight)) m_DebugTris = DebugTriangle.Submesh;
-            EditorGUILayout.EndHorizontal();
-        }
-        if (EditorGUI.EndChangeCheck())
-        {
-            m_hasUpdated = false;
-            SceneView.RepaintAll();
-        }
     }
 
     void OnSceneGUI(SceneView view)
@@ -371,4 +319,6 @@ public class MeshDebugger : EditorWindow
             blockLabel.alignment = TextAnchor.MiddleCenter;
         }
     }
+
+
 }
