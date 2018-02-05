@@ -67,6 +67,11 @@ public class IMGizmos : IDisposable
 
     public void Init(Transform transform, Transform camera, bool depth, bool equalSize)
     {
+        _transform = transform;
+        _camera = camera;
+        _depth = depth;
+        _equalSize = equalSize;
+
         m_TotalVert = 0;
         m_CurIter = 0;
         if (m_Gizmos.Count == 0)
@@ -76,10 +81,7 @@ public class IMGizmos : IDisposable
             m_Gizmos[i].m_Active = i == 0;
             m_Gizmos[i].Init(transform, camera, depth, equalSize);
         }
-        _transform = transform;
-        _camera = camera;
-        _depth = depth;
-        _equalSize = equalSize;
+      
     }
 
     public void End()
