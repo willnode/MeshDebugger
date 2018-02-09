@@ -17,6 +17,7 @@ public partial class MeshDebugger : EditorWindow
         public static GUIContent Static = new GUIContent("Static", "Turn on to assume that the mesh won't change internally (ie. not procedural)");
         public static GUIContent DepthCulling = new GUIContent("Depth Culling", "Turn on to cull cues that behind the object");
         public static GUIContent Equalize = new GUIContent("Equalize", "Turn on to keep cues on scale no matter far it is\n(NOTE: does not work correctly if static is on)");
+        public static GUIContent PartialDebug = new GUIContent("Partial Debug", "");
 
         public static GUIContent RaySize = new GUIContent("Ray Size", "The length of ray cues");
         public static GUIContent VertexRays = new GUIContent("Vertex Rays", "The length of ray cues");
@@ -28,7 +29,7 @@ public partial class MeshDebugger : EditorWindow
         public static GUIContent VertsToIndice = new GUIContent("Vertex to Indice", "Incomplete");
         public static GUIContent TriangleNormal = new GUIContent("Triangle Normal", "");
 
-        public static GUIContent UseHeatmap = new GUIContent("Triangle Normal", "");
+        public static GUIContent UseHeatmap = new GUIContent("Use Heatmap", "");
         public static GUIContent DebugVertices = new GUIContent("Debug Vertices", "");
         public static GUIContent DebugTriangles = new GUIContent("Debug Triangles", "");
 
@@ -56,7 +57,23 @@ public partial class MeshDebugger : EditorWindow
             EditorGUILayout.PrefixLabel(UI.Configuration);
             m_Static = GUILayout.Toggle(m_Static, UI.Static, EditorStyles.miniButtonLeft);
             m_DepthCulling = GUILayout.Toggle(m_DepthCulling, UI.DepthCulling, EditorStyles.miniButtonMid);
-            m_EqualizeGizmoSize = GUILayout.Toggle(m_EqualizeGizmoSize, UI.Equalize, EditorStyles.miniButtonRight);
+            if (m_Static)
+            {
+                EditorGUI.BeginDisabledGroup(true);
+                GUILayout.Toggle(false, UI.Equalize, EditorStyles.miniButtonRight);
+                EditorGUI.EndDisabledGroup();
+            }
+            else
+                m_EqualizeGizmoSize = GUILayout.Toggle(m_EqualizeGizmoSize, UI.Equalize, EditorStyles.miniButtonRight);
+            EditorGUILayout.EndHorizontal();
+        }
+        {
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.PrefixLabel(UI.PartialDebug);
+            m_PartialDebug = GUI.Toggle(EditorGUILayout.GetControlRect(GUILayout.Width(16)), m_PartialDebug, "");
+            EditorGUI.BeginDisabledGroup(!m_PartialDebug);
+            EditorGUILayout.MinMaxSlider(ref m_PartialDebugStart, ref m_PartialDebugEnd, 0, 1);
+            EditorGUI.EndDisabledGroup();
             EditorGUILayout.EndHorizontal();
         }
         m_RaySize = EditorGUILayout.Slider(UI.RaySize, m_RaySize, 0, 2);
@@ -71,14 +88,14 @@ public partial class MeshDebugger : EditorWindow
         {
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.PrefixLabel(UI.AdditionalRays);
-            m_DebugVertsToIndice = GUILayout.Toggle(m_DebugVertsToIndice,  UI.VertsToIndice, EditorStyles.miniButtonLeft);
+            m_DebugVertsToIndice = GUILayout.Toggle(m_DebugVertsToIndice, UI.VertsToIndice, EditorStyles.miniButtonLeft);
             m_DebugTrisNormal = GUILayout.Toggle(m_DebugTrisNormal, UI.TriangleNormal, EditorStyles.miniButtonRight);
             EditorGUILayout.EndHorizontal();
         }
         {
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.PrefixLabel(UI.UseHeatmap);
-            m_UseHeatmap = EditorGUILayout.Toggle(m_UseHeatmap);
+            m_UseHeatmap = GUI.Toggle(EditorGUILayout.GetControlRect(GUILayout.Width(16)), m_UseHeatmap, "");
             EditorGUI.BeginDisabledGroup(!m_UseHeatmap);
             m_HeatSize = EditorGUILayout.Slider(m_HeatSize, 0, 0.5f);
             EditorGUI.EndDisabledGroup();
@@ -101,6 +118,13 @@ public partial class MeshDebugger : EditorWindow
             if (GUILayout.Toggle(m_DebugTris == DebugTriangle.Area, UI.Area, EditorStyles.miniButtonMid)) m_DebugTris = DebugTriangle.Area;
             if (GUILayout.Toggle(m_DebugTris == DebugTriangle.Submesh, UI.Submesh, EditorStyles.miniButtonRight)) m_DebugTris = DebugTriangle.Submesh;
             EditorGUILayout.EndHorizontal();
+        }
+        {
+            EditorGUILayout.Space();
+            if (m_Mesh)
+                EditorGUILayout.HelpBox( "Mesh Features:\n" + m_cpu.m_Features, MessageType.Info);
+            if (!m_UseHeatmap && (m_DebugVert != DebugVertice.None || m_DebugTris != DebugTriangle.None) && !IsSafeToDrawGUI())
+                EditorGUILayout.HelpBox("Verts / Triangle count are too large to be displayed with GUI index rendering.\nConsider set smaller section or enable Heatmap instead.", MessageType.Warning);
         }
         if (EditorGUI.EndChangeCheck())
         {

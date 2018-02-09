@@ -4,7 +4,7 @@ using UnityEngine;
 
 // High management from IM Gizmos, with 65K mesh split!
 [Serializable]
-public class IMGizmos : IDisposable
+public class IMGizmos : ScriptableObject, IDisposable
 {
     public List<IMGizmo> m_Gizmos = new List<IMGizmo>();
 

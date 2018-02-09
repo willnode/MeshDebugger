@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using UnityEditor;
 using UnityEngine;
 
 // Mesh Analytics Gatherer
@@ -30,7 +32,11 @@ public class MeshInfo
 
     public int m_VertSimilarsMax;
     public int m_VertUsedCountMax;
+    public int m_VertOrphan;
+    public int m_VertDuplicates;
     public float m_IndiceAreaMax;
+    public float m_IndiceAreaTotal;
+    public int m_IndiceInvalidArea;
 
     public List<Color> m_Colors;
     public List<Vector4>[] m_UVs;
@@ -40,6 +46,8 @@ public class MeshInfo
     public List<Vector3>[] m_Normals;
 
     public List<float> m_NormalFlips;
+
+    public string m_Features;
 
     public bool hasUpdated
     {
@@ -83,6 +91,9 @@ public class MeshInfo
             }
         }
         {
+            m_IndiceAreaMax = 0;
+            m_IndiceAreaTotal = 0;
+            m_IndiceInvalidArea = 0;
             Resize(ref m_Indices, m_MeshSubmeshCount);
             Resize(ref m_IndiceAreas, m_MeshSubmeshCount);
             Resize(ref m_IndiceMedians, m_MeshSubmeshCount);
@@ -127,7 +138,11 @@ public class MeshInfo
                             m_IndiceAreas[i].Add(GetTriArea(m_Verts[a], m_Verts[b], m_Verts[c]) +
                              GetTriArea(m_Verts[d], m_Verts[b], m_Verts[c])); break;
                     }
-                    m_IndiceAreaMax = Mathf.Max(m_IndiceAreaMax, m_IndiceAreas[i][m_IndiceAreas[i].Count - 1]);
+                    var area = m_IndiceAreas[i][m_IndiceAreas[i].Count - 1];
+                    m_IndiceAreaMax = Mathf.Max(m_IndiceAreaMax, area);
+                    m_IndiceAreaTotal += area;
+                    if (area < 0e-10f)
+                        m_IndiceInvalidArea++;
                 }
             }
             m_IndiceCount = iter;
@@ -136,6 +151,8 @@ public class MeshInfo
         {
             m_VertSimilarsMax = 0;
             m_VertUsedCountMax = 0;
+            m_VertDuplicates = 0;
+            m_VertOrphan = m_Verts.Count;
             Resize(ref m_VertUsedCounts, m_Verts.Count);
             Resize(ref m_VertToIndicesDir, m_Verts.Count);
             Reset(ref m_VertSimilars);
@@ -143,7 +160,10 @@ public class MeshInfo
             {
                 var v = m_Verts[i];
                 if (m_VertSimilars.ContainsKey(v))
+                {
                     m_VertSimilars[v]++;
+                    m_VertDuplicates++;
+                }
                 else
                     m_VertSimilars[v] = 1;
                 m_VertSimilarsMax = Mathf.Max(m_VertSimilarsMax, m_VertSimilars[v]);
@@ -155,9 +175,19 @@ public class MeshInfo
                 {
                     var idx = indice[j];
                     m_VertToIndicesDir[idx] = (m_IndiceMedians[i][j / m_TopologyDivision[m_IndiceTypes[i]]] - m_Verts[idx]);
+                    if (m_VertUsedCounts[idx] == 0)
+                        m_VertOrphan--;
                     m_VertUsedCountMax = Mathf.Max(m_VertUsedCountMax, ++m_VertUsedCounts[idx]);
                 }
             }
+        }
+        {
+            m_Features =
+                "Vertices: " + m_VertCount + " total, " + (m_VertOrphan > 0 ? m_VertOrphan + " orphan, " : "") + (m_VertDuplicates > 0 ? m_VertDuplicates + " duplicates, " : "") +
+                "\nIndices: " + m_IndiceCountNormalized + " total, " + m_IndiceCount + " buffer capacity, " + m_IndiceAreaTotal.ToString("0.##") + " unit surface area, " + 
+                (m_MeshSubmeshCount > 1 ? m_MeshSubmeshCount + " submeshes, " : "") + (m_IndiceInvalidArea > 0 ? m_IndiceInvalidArea + " invalid, " : "") + 
+                "\nChannels: " + InternalMeshUtil.GetVertexFormat(m_Mesh) +
+                "\nSize: " + m_MeshBounds.size.ToString("0.00");
         }
         m_lastMeshId = m_Mesh.GetInstanceID();
     }
@@ -239,5 +269,17 @@ public class MeshInfo
     {
         Reset<T>(ref list);
         list.AddRange(array);
+    }
+}
+
+internal static class InternalMeshUtil
+{
+    public static Func<Mesh, string> GetVertexFormat;
+
+    static InternalMeshUtil()
+    {
+        var type = typeof(Editor).Assembly.GetTypes().First((x) => x.Name == "InternalMeshUtil");
+        GetVertexFormat = (Func<Mesh, string>)Delegate.CreateDelegate(typeof(Func<Mesh, string>), null,
+            type.GetMethod("GetVertexFormat", BindingFlags.Static | BindingFlags.Public));
     }
 }

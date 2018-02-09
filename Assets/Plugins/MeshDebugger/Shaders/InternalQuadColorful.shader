@@ -40,8 +40,8 @@
 				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 				float3x3 TV = (UNITY_MATRIX_V);
 
-				o.vertex = UnityObjectToClipPos(v.vertex + 
-					float4(TV[0] * v.uv.x, 0) + 
+				o.vertex = mul(UNITY_MATRIX_VP, mul(unity_ObjectToWorld, v.vertex) +
+					float4(TV[0] * v.uv.x, 0) +
 					float4(TV[1] * v.uv.y, 0));
 				o.color = v.color;
 				return o;

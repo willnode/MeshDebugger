@@ -1,4 +1,5 @@
-﻿using UnityEditor;
+﻿using System;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.UI;
@@ -8,11 +9,14 @@ public partial class MeshDebugger : EditorWindow
 {
     public Mesh m_Mesh;
     public Transform m_Transform;
-    public IMGizmos m_Gizmo = new IMGizmos();
+    public IMGizmos m_Gizmo;
 
     public bool m_Static = true;
     public bool m_DepthCulling;
     public bool m_EqualizeGizmoSize;
+    public bool m_PartialDebug;
+    public float m_PartialDebugStart = 0;
+    public float m_PartialDebugEnd = 1;
 
     [Space]
     public bool m_DebugNormalVerts;
@@ -52,6 +56,9 @@ public partial class MeshDebugger : EditorWindow
         SceneView.onSceneGUIDelegate += OnSceneGUI;
         Selection.selectionChanged += OnSelectionChange;
         m_hasUpdated = false;
+
+        if (!m_Gizmo)
+            m_Gizmo = CreateInstance<IMGizmos>();
     }
 
     void OnDisable()
@@ -104,8 +111,7 @@ public partial class MeshDebugger : EditorWindow
     {
         if (Event.current.type != EventType.Repaint)
             return;
-
-
+        
         if (!m_Mesh || !m_Mesh.isReadable)
         {
             if (m_Gizmo != null)
@@ -125,19 +131,18 @@ public partial class MeshDebugger : EditorWindow
         {
             m_Gizmo.UpdateGO(m_Transform);
             m_Gizmo.Render();
+            if (!m_UseHeatmap && IsSafeToDrawGUI())
+                DrawGUILabels();
             return;
         }
 
-        m_Gizmo.Init(m_Transform, m_sceneCam, m_DepthCulling, m_EqualizeGizmoSize);
-
-        Handles.matrix = m_matrix = m_Transform.localToWorldMatrix;
+        m_Gizmo.Init(m_Transform, m_sceneCam, m_DepthCulling, m_EqualizeGizmoSize && !m_Static);
 
         if (m_DebugNormalVerts || m_DebugTangentVerts || m_DebugBinormalVerts || m_DebugVertsToIndice)
         {
             Color blue = Color.blue, green = Color.green, red = Color.red, yellow = Color.yellow;
-            for (int i = 0; i < m_cpu.m_VertCount; i++)
+            EachVert((i, vert) =>
             {
-                var vert = m_cpu.m_Verts[i];
                 if (m_DebugNormalVerts)
                     m_Gizmo.AddRay(vert, m_cpu.m_Normals[0][i] * m_RaySize, blue);
                 if (m_DebugTangentVerts)
@@ -146,57 +151,39 @@ public partial class MeshDebugger : EditorWindow
                     m_Gizmo.AddRay(vert, m_cpu.m_Normals[2][i] * m_RaySize, red);
                 if (m_DebugVertsToIndice)
                     m_Gizmo.AddLine(vert, vert + m_cpu.m_VertToIndicesDir[i], yellow);
-            }
+            });
         }
 
         if (m_DebugTrisNormal)
         {
-            for (int i = 0; i < m_cpu.m_MeshSubmeshCount; i++)
-            {
-                var norms = m_cpu.m_IndiceNormals[i];
-                var medians = m_cpu.m_IndiceMedians[i];
-                for (int j = 0; j < medians.Count; j++)
-                {
-                    var vert = medians[j];
-                    m_Gizmo.AddRay(vert, norms[j] * m_RaySize, Color.yellow);
-                }
-            }
+            var norms = m_cpu.m_IndiceNormals;
+            EachIndice((i, j, median) =>
+                m_Gizmo.AddRay(median, norms[i][j] * m_RaySize, Color.yellow)
+            );
         }
 
         if (m_UseHeatmap)
         {
-            // Vector3 fwd = m_Static ? default(Vector3) : m_sceneCam.forward * -m_HeatSize;
             float factor;
             switch (m_DebugTris)
             {
                 case DebugTriangle.Index:
                     factor = 1f / m_cpu.m_IndiceCountNormalized;
-                    for (int i = 0; i < m_cpu.m_MeshSubmeshCount; i++)
-                    {
-                        var medians = m_cpu.m_IndiceMedians[i];
-                        var offset = m_cpu.m_IndiceOffsets[i];
-                        for (int j = 0; j < medians.Count; j++)
-                            m_Gizmo.AddQuad(medians[j], m_HeatSize, (j + offset) * factor);
-                    }
+                    EachIndice((i, j, median) =>
+                        m_Gizmo.AddQuad(median, m_HeatSize, (j + m_cpu.m_IndiceOffsets[i]) * factor)
+                    );
                     break;
                 case DebugTriangle.Area:
                     factor = 1f / m_cpu.m_IndiceAreaMax;
-                    for (int i = 0; i < m_cpu.m_MeshSubmeshCount; i++)
-                    {
-                        var medians = m_cpu.m_IndiceMedians[i];
-                        var area = m_cpu.m_IndiceAreas[i];
-                        for (int j = 0; j < medians.Count; j++)
-                            m_Gizmo.AddQuad(medians[j], m_HeatSize, area[j] * factor);
-                    }
+                    EachIndice((i, j, median) =>
+                        m_Gizmo.AddQuad(median, m_HeatSize, m_cpu.m_IndiceAreas[i][j] * factor)
+                    );
                     break;
                 case DebugTriangle.Submesh:
                     factor = 1f / m_cpu.m_MeshSubmeshCount;
-                    for (int i = 0; i < m_cpu.m_MeshSubmeshCount; i++)
-                    {
-                        var medians = m_cpu.m_IndiceMedians[i];
-                        for (int j = 0; j < medians.Count; j++)
-                            m_Gizmo.AddQuad(medians[j], m_HeatSize, (i) * factor);
-                    }
+                    EachIndice((i, j, median) =>
+                         m_Gizmo.AddQuad(median, m_HeatSize, i * factor)
+                    );
                     break;
             }
 
@@ -204,13 +191,15 @@ public partial class MeshDebugger : EditorWindow
             {
                 case DebugVertice.Index:
                     factor = 1f / m_cpu.m_VertCount;
-                    for (int i = 0; i < m_cpu.m_VertCount; i++)
-                        m_Gizmo.AddQuad(m_cpu.m_Verts[i], m_HeatSize, (i) * factor);
+                    EachVert((i, vert) =>
+                        m_Gizmo.AddQuad(vert, m_HeatSize, i * factor)
+                    );
                     break;
                 case DebugVertice.Shared:
                     factor = 1f / m_cpu.m_VertUsedCountMax;
-                    for (int i = 0; i < m_cpu.m_VertCount; i++)
-                        m_Gizmo.AddQuad(m_cpu.m_Verts[i], m_HeatSize, m_cpu.m_VertUsedCounts[i] * factor);
+                    EachVert((i, vert) =>
+                        m_Gizmo.AddQuad(vert, m_HeatSize, m_cpu.m_VertUsedCounts[i] * factor)
+                    );
                     break;
                 case DebugVertice.Duplicates:
                     factor = 1f / m_cpu.m_VertSimilarsMax;
@@ -219,73 +208,114 @@ public partial class MeshDebugger : EditorWindow
                     break;
             }
         }
-        else if (m_cpu.m_IndiceCount < 10000 && m_cpu.m_VertCount < 5000)
+        else if (IsSafeToDrawGUI())
         {
             // IMGUI is always slow. Better safe than sorry
-
-            Handles.BeginGUI();
-            switch (m_DebugTris)
-            {
-                case DebugTriangle.Index:
-                    for (int i = 0; i < m_cpu.m_MeshSubmeshCount; i++)
-                    {
-                        var norms = m_cpu.m_IndiceNormals[i];
-                        var medians = m_cpu.m_IndiceMedians[i];
-                        var offset = m_cpu.m_IndiceOffsets[i];
-                        for (int j = 0; j < medians.Count; j++)
-                            DrawLabel(medians[j], norms[j], (j + offset).ToString());
-                    }
-                    break;
-                case DebugTriangle.Area:
-                    for (int i = 0; i < m_cpu.m_MeshSubmeshCount; i++)
-                    {
-                        var medians = m_cpu.m_IndiceMedians[i];
-                        var area = m_cpu.m_IndiceAreas[i];
-                        var norms = m_cpu.m_IndiceNormals[i];
-                        for (int j = 0; j < medians.Count; j++)
-                            DrawLabel(medians[j], norms[j], area[j].ToString("0.0"));
-                    }
-                    break;
-                case DebugTriangle.Submesh:
-                    for (int i = 0; i < m_cpu.m_MeshSubmeshCount; i++)
-                    {
-                        var medians = m_cpu.m_IndiceMedians[i];
-                        var norms = m_cpu.m_IndiceNormals[i];
-                        for (int j = 0; j < medians.Count; j++)
-                            DrawLabel(medians[j], norms[j], i.ToString());
-                    }
-                    break;
-            }
-
-            switch (m_DebugVert)
-            {
-                case DebugVertice.Index:
-                    for (int i = 0; i < m_cpu.m_VertCount; i++)
-                        DrawLabel(m_cpu.m_Verts[i], m_cpu.m_Normals[0][i], i.ToString());
-                    break;
-                case DebugVertice.Shared:
-                    for (int i = 0; i < m_cpu.m_VertCount; i++)
-                        DrawLabel(m_cpu.m_Verts[i], m_cpu.m_Normals[0][i], m_cpu.m_VertUsedCounts[i].ToString());
-                    break;
-                case DebugVertice.Duplicates:
-                    foreach (var item in m_cpu.m_VertSimilars)
-                        DrawLabel(item.Key, item.Key, item.Value.ToString());
-                    break;
-                default:
-                    break;
-            }
-            Handles.EndGUI();
+            DrawGUILabels();
         }
 
         m_Gizmo.End();
 
         m_Gizmo.Render();
 
-        Handles.matrix = Matrix4x4.identity;
-
         m_hasUpdated = true;
     }
 
+    private bool IsSafeToDrawGUI ()
+    {
+        return ((m_DebugTris == DebugTriangle.None ? 0 : m_cpu.m_IndiceCountNormalized) + 
+            (m_DebugVert == DebugVertice.None ? 0 : m_cpu.m_VertCount)) * 
+            (m_PartialDebug ? (m_PartialDebugEnd - m_PartialDebugStart) : 1) < 2500;
+    }
+
+    private void DrawGUILabels ()
+    {
+        Handles.matrix = m_matrix = m_Transform.localToWorldMatrix;
+        Handles.BeginGUI();
+        switch (m_DebugTris)
+        {
+            case DebugTriangle.Index:
+                EachIndice((i, j, vert) =>
+                    DrawLabel(vert, m_cpu.m_IndiceNormals[i][j], (j + m_cpu.m_IndiceOffsets[i]).ToString())
+                );
+                break;
+            case DebugTriangle.Area:
+                EachIndice((i, j, vert) =>
+                     DrawLabel(vert, m_cpu.m_IndiceNormals[i][j], m_cpu.m_IndiceAreas[i][j].ToString("0.0"))
+                );
+                break;
+            case DebugTriangle.Submesh:
+                EachIndice((i, j, vert) =>
+                        DrawLabel(vert, m_cpu.m_IndiceNormals[i][j], i.ToString("0.0"))
+                );
+                break;
+        }
+
+        switch (m_DebugVert)
+        {
+            case DebugVertice.Index:
+                EachVert((i, vert) =>
+                    DrawLabel(vert, m_cpu.m_Normals[0][i], i.ToString())
+                );
+                break;
+            case DebugVertice.Shared:
+                EachVert((i, vert) =>
+                    DrawLabel(vert, m_cpu.m_Normals[0][i], m_cpu.m_VertUsedCounts[i].ToString())
+                );
+                break;
+            case DebugVertice.Duplicates:
+                foreach (var item in m_cpu.m_VertSimilars)
+                    DrawLabel(item.Key, item.Key, item.Value.ToString());
+                break;
+            default:
+                break;
+        }
+        Handles.EndGUI();
+        Handles.matrix = Matrix4x4.identity;
+    }
+
+    private void EachVert(Action<int, Vector3> gui)
+    {
+        var count = m_cpu.m_VertCount;
+        var start = m_PartialDebug ? (int)(count * m_PartialDebugStart) : 0;
+        var end = m_PartialDebug ? (int)(count * m_PartialDebugEnd) : count;
+        var verts = m_cpu.m_Verts;
+        for (int i = start; i < end; i++)
+            gui(i, verts[i]);
+    }
+
+    private void EachIndice(Action<int, int, Vector3> gui)
+    {
+        if (m_PartialDebug)
+        {
+            var count = m_cpu.m_IndiceCountNormalized;
+            var start = (int)(count * m_PartialDebugStart);
+            var end = (int)(count * m_PartialDebugEnd);
+            for (int i = 0; i < m_cpu.m_MeshSubmeshCount; i++)
+            {
+                var tris = m_cpu.m_IndiceMedians[i];
+                var offset = m_cpu.m_IndiceOffsets[i];
+                var offset2 = offset + tris.Count;
+                if (start > offset2 || end < offset) continue;
+                for (int j = 0; j < tris.Count; j++)
+                {
+                    var k = offset + j;
+                    if (k > start && k < end)
+                        gui(i, j, tris[j]);
+                }
+            }
+        }
+        else
+        {
+            for (int i = 0; i < m_cpu.m_MeshSubmeshCount; i++)
+            {
+                var tris = m_cpu.m_IndiceMedians[i];
+                for (int j = 0; j < tris.Count; j++)
+                    gui(i, j, tris[j]);
+            }
+
+        }
+    }
 
     private bool IsFacingCamera(Vector3 pos, Vector3 normal)
     {
