@@ -5,7 +5,7 @@ using UnityEngine.Rendering;
 using UnityEngine.UI;
 
 [ExecuteInEditMode]
-public partial class MeshDebugger : EditorWindow
+public partial class MeshDebugger : EditorWindow, IHasCustomMenu
 {
     public Mesh m_Mesh;
     public Transform m_Transform;
@@ -107,11 +107,24 @@ public partial class MeshDebugger : EditorWindow
         Repaint();
     }
 
+    [ContextMenu("Show Help")]
+    void ShowHelp()
+    {
+        Application.OpenURL("https://github.com/willnode/MeshDebugger/blob/master/INSTRUCTIONS.md");
+    }
+
+
+    public virtual void AddItemsToMenu(GenericMenu menu)
+    {
+        GUIContent content = new GUIContent("Show Help");
+        menu.AddItem(content, false, this.ShowHelp);
+    }
+
     void OnSceneGUI(SceneView view)
     {
         if (Event.current.type != EventType.Repaint)
             return;
-        
+
         if (!m_Mesh || !m_Mesh.isReadable)
         {
             if (m_Gizmo != null)
@@ -140,7 +153,7 @@ public partial class MeshDebugger : EditorWindow
 
         if (m_DebugNormalVerts || m_DebugTangentVerts || m_DebugBinormalVerts || m_DebugVertsToIndice)
         {
-            Color blue = Color.blue, green = Color.green, red = Color.red, yellow = Color.yellow;
+            Color blue = Color.blue, green = Color.green, red = Color.red, cyan = Color.cyan;
             EachVert((i, vert) =>
             {
                 if (m_DebugNormalVerts)
@@ -150,15 +163,16 @@ public partial class MeshDebugger : EditorWindow
                 if (m_DebugBinormalVerts)
                     m_Gizmo.AddRay(vert, m_cpu.m_Normals[2][i] * m_RaySize, red);
                 if (m_DebugVertsToIndice)
-                    m_Gizmo.AddLine(vert, vert + m_cpu.m_VertToIndicesDir[i], yellow);
+                    m_Gizmo.AddLine(vert, vert + m_cpu.m_VertToIndicesDir[i], cyan);
             });
         }
 
         if (m_DebugTrisNormal)
         {
+            var color = Color.yellow;
             var norms = m_cpu.m_IndiceNormals;
             EachIndice((i, j, median) =>
-                m_Gizmo.AddRay(median, norms[i][j] * m_RaySize, Color.yellow)
+                m_Gizmo.AddRay(median, norms[i][j] * m_RaySize, color)
             );
         }
 
@@ -221,14 +235,14 @@ public partial class MeshDebugger : EditorWindow
         m_hasUpdated = true;
     }
 
-    private bool IsSafeToDrawGUI ()
+    private bool IsSafeToDrawGUI()
     {
-        return ((m_DebugTris == DebugTriangle.None ? 0 : m_cpu.m_IndiceCountNormalized) + 
-            (m_DebugVert == DebugVertice.None ? 0 : m_cpu.m_VertCount)) * 
+        return ((m_DebugTris == DebugTriangle.None ? 0 : m_cpu.m_IndiceCountNormalized) +
+            (m_DebugVert == DebugVertice.None ? 0 : m_cpu.m_VertCount)) *
             (m_PartialDebug ? (m_PartialDebugEnd - m_PartialDebugStart) : 1) < 2500;
     }
 
-    private void DrawGUILabels ()
+    private void DrawGUILabels()
     {
         Handles.matrix = m_matrix = m_Transform.localToWorldMatrix;
         Handles.BeginGUI();
