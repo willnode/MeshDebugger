@@ -8,9 +8,9 @@ After importing the plugin to your project, you can open Mesh Debugger window to
 
 ## Selecting Object to Inspect
 
-The first row shows which object and mesh that currently being inspected. It'll automatically change, depending on what object that currently being selected in the scene.
+The first row shows which object and mesh that currently being inspected. It'll be automatically changed to active (selected) object in the scene, then looking for a Mesh containing in either `MeshFilter` (3D) or `Graphic` (UI).
 
-> Up to this version you can't lock the selected mesh and there's no plan for supporting multiple inspection in the same time.
+> Until this version you can't lock the selected mesh and there's no plan for supporting multiple inspection in the same time.
 
 ## Configurations
 
