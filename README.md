@@ -4,9 +4,11 @@
 
 This is an editor tool to visually inspect a mesh. Very helpful if you want to debug your procedural mesh.
 
-## Download
+## Download + Manual
 
-Download the plugin via [releases](releases)
+**Download the plugin via [Releases](/willnode/meshdebugger/releases) or [Asset Store](//u3d.as/Qsd)**.
+
+Also see **[Usage Instruction](INSTRUCTIONS.md)**.
 
 ## Features
 
@@ -34,4 +36,4 @@ If enough people interested I can make separate repo for `IMGizmos` which makes 
 
 ## License
 
-MIT
+[MIT](LICENSE)
