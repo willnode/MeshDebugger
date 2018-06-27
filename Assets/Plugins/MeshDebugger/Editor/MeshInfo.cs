@@ -45,6 +45,11 @@ public class MeshInfo
     // Normal = 0, Tangent = 1, Bitangent = 2
     public List<Vector3>[] m_Normals;
 
+    /// <summary>
+    /// 3 = Normal + Tangents, 1 = Normal, 0 = None,
+    /// </summary>
+    public int m_NormalChannels = 0;
+
     public List<float> m_NormalFlips;
 
     public string m_Features;
@@ -83,12 +88,20 @@ public class MeshInfo
             Set(ref m_Normals[0], m_Mesh.normals);
             Reset(ref m_NormalFlips);
             var tan = m_Mesh.tangents;
-            for (int i = 0; i < m_Normals[0].Count; i++)
+            if (tan.Length > 0)
             {
-                m_Normals[1].Add(tan[i]);
-                m_NormalFlips.Add(tan[i].w);
-                m_Normals[2].Add(Vector3.Cross(m_Normals[0][i], m_Normals[1][i]) * m_NormalFlips[i]);
+                for (int i = 0; i < m_Normals[0].Count; i++)
+                {
+                    m_Normals[1].Add(tan[i]);
+                    m_NormalFlips.Add(tan[i].w);
+                    m_Normals[2].Add(Vector3.Cross(m_Normals[0][i], m_Normals[1][i]) * m_NormalFlips[i]);
+                }
+                m_NormalChannels = 3;
             }
+            else if (m_Normals[0].Count > 0)
+                m_NormalChannels = 1;
+            else
+                m_NormalChannels = 0;
         }
         {
             m_IndiceAreaMax = 0;
@@ -119,22 +132,26 @@ public class MeshInfo
                         case 1:
                             a = indice[m];
                             m_IndiceMedians[i].Add(m_Verts[a]);
-                            m_IndiceNormals[i].Add(normal[a]);
+                            if (m_NormalChannels > 0)
+                                m_IndiceNormals[i].Add(normal[a]);
                             m_IndiceAreas[i].Add(0); break;
                         case 2:
                             a = indice[m]; b = indice[m + 1];
                             m_IndiceMedians[i].Add((m_Verts[a] + m_Verts[b]) / 2);
-                            m_IndiceNormals[i].Add((normal[a] + normal[b]).normalized);
+                            if (m_NormalChannels > 0)
+                                m_IndiceNormals[i].Add((normal[a] + normal[b]).normalized);
                             m_IndiceAreas[i].Add((m_Verts[a] + m_Verts[b]).magnitude); break;
                         case 3:
                             a = indice[m]; b = indice[m + 1]; c = indice[m + 2];
                             m_IndiceMedians[i].Add((m_Verts[a] + m_Verts[b] + m_Verts[c]) / 3);
-                            m_IndiceNormals[i].Add((normal[a] + normal[b] + normal[c]).normalized);
+                            if (m_NormalChannels > 0)
+                                m_IndiceNormals[i].Add((normal[a] + normal[b] + normal[c]).normalized);
                             m_IndiceAreas[i].Add(GetTriArea(m_Verts[a], m_Verts[b], m_Verts[c])); break;
                         case 4:
                             a = indice[m]; b = indice[m + 1]; c = indice[m + 2]; d = indice[m + 3];
                             m_IndiceMedians[i].Add((m_Verts[a] + m_Verts[b] + m_Verts[c] + m_Verts[d]) / 4);
-                            m_IndiceNormals[i].Add((normal[a] + normal[b] + normal[c] + normal[d]).normalized);
+                            if (m_NormalChannels > 0)
+                                m_IndiceNormals[i].Add((normal[a] + normal[b] + normal[c] + normal[d]).normalized);
                             m_IndiceAreas[i].Add(GetTriArea(m_Verts[a], m_Verts[b], m_Verts[c]) +
                              GetTriArea(m_Verts[d], m_Verts[b], m_Verts[c])); break;
                     }
@@ -180,16 +197,16 @@ public class MeshInfo
                         m_VertToIndicesDir[idx] = new List<int>();
                     }
                     m_VertToIndicesDir[idx].Add(m_IndiceOffsets[i] + j);
-                   m_VertUsedCountMax = Mathf.Max(m_VertUsedCountMax, ++m_VertUsedCounts[idx]);
+                    m_VertUsedCountMax = Mathf.Max(m_VertUsedCountMax, ++m_VertUsedCounts[idx]);
                 }
             }
         }
         {
             m_Features =
                 "Vertices: " + m_VertCount + " total, " + (m_VertOrphan > 0 ? m_VertOrphan + " orphan, " : "") + (m_VertDuplicates > 0 ? m_VertDuplicates + " duplicates, " : "") +
-                "\nIndices: " + m_IndiceCountNormalized + " total, " + m_IndiceCount + " buffer capacity, " + m_IndiceAreaTotal.ToString("0.##") + " unit surface area, " + 
-                (m_MeshSubmeshCount > 1 ? m_MeshSubmeshCount + " submeshes, " : "") + (m_IndiceInvalidArea > 0 ? m_IndiceInvalidArea + " invalid, " : "") + 
-                "\nChannels: " + InternalMeshUtil.GetVertexFormat(m_Mesh) +
+                "\nIndices: " + m_IndiceCountNormalized + " total, " + m_IndiceCount + " buffer capacity, " + m_IndiceAreaTotal.ToString("0.##") + " unit surface area, " +
+                (m_MeshSubmeshCount > 1 ? m_MeshSubmeshCount + " submeshes, " : "") + (m_IndiceInvalidArea > 0 ? m_IndiceInvalidArea + " invalid, " : "") +
+                "\nChannels: position," + (m_NormalChannels >= 1 ? "normals," + ( m_NormalChannels >= 3 ? "tangents," : "") : "") + InternalMeshUtil.GetVertexFormat(m_Mesh) +
                 "\nSize: " + m_MeshBounds.size.ToString("0.00");
         }
         m_lastMeshId = m_Mesh.GetInstanceID();
@@ -276,7 +293,7 @@ public class MeshInfo
 
     public void UnpackTriangleIdx(int src, out int submesh, out int localidx)
     {
-        for (int i = m_MeshSubmeshCount; i --> 0;)
+        for (int i = m_MeshSubmeshCount; i-- > 0;)
         {
             if (i > 0 && m_IndiceOffsets[i] > src)
                 continue;

@@ -75,8 +75,8 @@ public partial class MeshDebugger : EditorWindow, IHasCustomMenu
 
     void OnDestroy() {
         m_Gizmo.Dispose();
-        if (m_Mesh)
-            DestroyImmediate(m_Mesh);
+        if (m_tempMesh)
+            DestroyImmediate(m_tempMesh);
     }
 
     void OnSelectionChange()
@@ -177,11 +177,11 @@ public partial class MeshDebugger : EditorWindow, IHasCustomMenu
             Color blue = Color.blue, green = Color.green, red = Color.red, cyan = Color.cyan;
             EachVert((i, vert) =>
             {
-                if (m_DebugNormalVerts)
+                if (m_DebugNormalVerts && m_cpu.m_NormalChannels >= 1)
                     m_Gizmo.AddRay(vert, m_cpu.m_Normals[0][i] * m_RaySize, blue);
-                if (m_DebugTangentVerts)
+                if (m_DebugTangentVerts && m_cpu.m_NormalChannels >= 2)
                     m_Gizmo.AddRay(vert, m_cpu.m_Normals[1][i] * m_RaySize, green);
-                if (m_DebugBinormalVerts)
+                if (m_DebugBinormalVerts && m_cpu.m_NormalChannels >= 3)
                     m_Gizmo.AddRay(vert, m_cpu.m_Normals[2][i] * m_RaySize, red);
                 if (m_DebugVertsToIndice)
                 {
@@ -270,7 +270,7 @@ public partial class MeshDebugger : EditorWindow, IHasCustomMenu
     {
         return ((m_DebugTris == DebugTriangle.None ? 0 : m_cpu.m_IndiceCountNormalized) +
             (m_DebugVert == DebugVertice.None ? 0 : m_cpu.m_VertCount)) *
-            (m_PartialDebug ? (m_PartialDebugEnd - m_PartialDebugStart) : 1) < 2500;
+            (m_PartialDebug ? (m_PartialDebugEnd - m_PartialDebugStart) : 1) < Styles.GUILimit;
     }
 
     private void DrawGUILabels()
@@ -281,7 +281,7 @@ public partial class MeshDebugger : EditorWindow, IHasCustomMenu
         {
             case DebugTriangle.Index:
                 EachIndice((i, j, vert) =>
-                    DrawLabel(vert, m_cpu.m_IndiceNormals[i][j], (j + m_cpu.m_IndiceOffsets[i]).ToString())
+                    DrawLabel(vert, m_cpu.m_IndiceNormals[i][j], (j + m_cpu.m_IndiceOffsets[i]))
                 );
                 break;
             case DebugTriangle.Area:
@@ -300,17 +300,17 @@ public partial class MeshDebugger : EditorWindow, IHasCustomMenu
         {
             case DebugVertice.Index:
                 EachVert((i, vert) =>
-                    DrawLabel(vert, m_cpu.m_Normals[0][i], i.ToString())
+                    DrawLabel(vert, m_cpu.m_Normals[0][i], i)
                 );
                 break;
             case DebugVertice.Shared:
                 EachVert((i, vert) =>
-                    DrawLabel(vert, m_cpu.m_Normals[0][i], m_cpu.m_VertUsedCounts[i].ToString())
+                    DrawLabel(vert, m_cpu.m_Normals[0][i], m_cpu.m_VertUsedCounts[i])
                 );
                 break;
             case DebugVertice.Duplicates:
                 foreach (var item in m_cpu.m_VertSimilars)
-                    DrawLabel(item.Key, item.Key, item.Value.ToString());
+                    DrawLabel(item.Key, item.Key, item.Value);
                 break;
             default:
                 break;
@@ -369,6 +369,11 @@ public partial class MeshDebugger : EditorWindow, IHasCustomMenu
 
     private static GUIContent m_gui = new GUIContent();
 
+    private void DrawLabel(Vector3 pos, Vector3 normal, int number)
+    {
+        DrawLabel(pos, normal, number < Styles.GUILimit ? Styles.numbers[number] : number.ToString());
+    }
+
     private void DrawLabel(Vector3 pos, Vector3 normal, string text)
     {
         if (!m_DepthCulling || (IsFacingCamera(pos, normal)))
@@ -386,8 +391,17 @@ public partial class MeshDebugger : EditorWindow, IHasCustomMenu
     {
         static public GUIStyle blockLabel = new GUIStyle(EditorStyles.boldLabel);
 
+        static public string[] numbers;
+
+        public const int GUILimit = 2500;
+
         static Styles()
         {
+            numbers = new string[GUILimit];
+            for (int i = 0; i < numbers.Length; i++)
+                numbers[i] = i.ToString();
+
+            blockLabel.normal.textColor = Color.black;
             blockLabel.normal.background = EditorGUIUtility.whiteTexture;
             blockLabel.margin = new RectOffset();//2, 2, 1, 1);
             blockLabel.padding = new RectOffset();
