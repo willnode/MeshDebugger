@@ -100,7 +100,7 @@ public partial class MeshDebugger : EditorWindow, IHasCustomMenu
         {
             if (mat)
             {
-                if (m_backupMats == null)
+                if (m_backupMats == null || m_backupMats.Length == 0)
                 {
                     m_backupMats = r.sharedMaterials;
                     m_matModificationBreaksPrefab = (PrefabUtility.GetPrefabType(r) > PrefabType.ModelPrefab
@@ -110,7 +110,7 @@ public partial class MeshDebugger : EditorWindow, IHasCustomMenu
                 mat.SetInt(Styles.UV_Mode, (int)m_DebugSurfaceUV);
                 mat.SetInt(Styles.Tan_Mode, (int)m_DebugSurfaceTangents);
             }
-            else if (m_backupMats != null)
+            else if (m_backupMats != null && m_backupMats.Length > 0)
             {
                 if (m_matModificationBreaksPrefab)
                 {
@@ -207,7 +207,7 @@ public partial class MeshDebugger : EditorWindow, IHasCustomMenu
         if (Event.current.type != EventType.Repaint)
             return;
 
-        if (!m_Mesh || !m_Mesh.isReadable)
+        if (!m_Transform || !m_Mesh || !m_Mesh.isReadable)
         {
             if (m_Gizmo != null)
                 m_Gizmo.Clear();
@@ -442,6 +442,7 @@ public partial class MeshDebugger : EditorWindow, IHasCustomMenu
             m_gui.text = text;
             var GUIPos = HandleUtility.WorldPointToSizedRect(pos, m_gui, Styles.blockLabel);
             GUIPos.y -= 7f;
+            GUIPos.x -= GUIPos.width / 2;
             GUI.Label(GUIPos, m_gui, Styles.blockLabel);
         }
     }

@@ -159,7 +159,7 @@ public partial class MeshDebugger : EditorWindow
         {
             EditorGUILayout.Space();
             if (m_Mesh)
-                EditorGUILayout.HelpBox( "Mesh Features:\n" + m_cpu.m_Features, MessageType.Info);
+                EditorGUILayout.HelpBox(m_cpu.m_Features, MessageType.Info);
             if (!m_UseHeatmap && (m_DebugVert != DebugVertice.None || m_DebugTris != DebugTriangle.None) && !IsSafeToDrawGUI())
                 EditorGUILayout.HelpBox("Verts / Triangle count are too large to be displayed with GUI index rendering.\nConsider set smaller section or enable Heatmap instead.", MessageType.Warning);
         }

@@ -229,8 +229,8 @@ public class IMGizmo : ScriptableObject
         m_Mesh.SetColors(m_Color);
         m_Mesh.SetUVs(0, m_UV);
         m_Mesh.subMeshCount = 2;
-        m_Mesh.SetIndices(m_Lines.ToArray(), MeshTopology.Lines, 0);
-        m_Mesh.SetIndices(m_Quads.ToArray(), MeshTopology.Quads, 1);
+        InternalMeshUtil.SetIndices(m_Mesh, m_Lines, MeshTopology.Lines, 0, false);
+        InternalMeshUtil.SetIndices(m_Mesh, m_Quads, MeshTopology.Quads, 1, false);
         m_Mesh.RecalculateBounds();
     }
 

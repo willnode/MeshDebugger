@@ -202,17 +202,17 @@ public class MeshInfo
             }
         }
         {
-            m_Features =
-                "Vertices: " + m_VertCount + " total, " + (m_VertOrphan > 0 ? m_VertOrphan + " orphan, " : "") + (m_VertDuplicates > 0 ? m_VertDuplicates + " duplicates, " : "") +
+            m_Features = "Mesh Features:" +
+                "\nVertices: " + m_VertCount + " total, " + (m_VertOrphan > 0 ? m_VertOrphan + " orphan, " : "") + (m_VertDuplicates > 0 ? m_VertDuplicates + " duplicates, " : "") +
                 "\nIndices: " + m_IndiceCountNormalized + " total, " + m_IndiceCount + " buffer capacity, " + m_IndiceAreaTotal.ToString("0.##") + " unit surface area, " +
                 (m_MeshSubmeshCount > 1 ? m_MeshSubmeshCount + " submeshes, " : "") + (m_IndiceInvalidArea > 0 ? m_IndiceInvalidArea + " invalid, " : "") +
-                "\nChannels: position," + (m_NormalChannels >= 1 ? "normals," + ( m_NormalChannels >= 3 ? "tangents," : "") : "") + InternalMeshUtil.GetVertexFormat(m_Mesh) +
+                "\nChannels: position, " + (m_NormalChannels >= 1 ? "normals, " + ( m_NormalChannels >= 3 ? "tangents, " : "") : "") + InternalMeshUtil.GetVertexFormat(m_Mesh).Replace(",", ", ") +
                 "\nSize: " + m_MeshBounds.size.ToString("0.00");
         }
         m_lastMeshId = m_Mesh.GetInstanceID();
     }
 
-    static public Dictionary<MeshTopology, int> m_TopologyDivision = new Dictionary<MeshTopology, int>()
+    static public Dictionary<MeshTopology, int> m_TopologyDivision = new Dictionary<MeshTopology, int>(new MeshTopologyComparer())
         {
             {MeshTopology.Lines, 2},
             {MeshTopology.LineStrip, 2},
@@ -220,6 +220,20 @@ public class MeshInfo
             {MeshTopology.Quads, 4},
             {MeshTopology.Triangles, 3},
         };
+
+    // for performance godsake
+    public class MeshTopologyComparer : IEqualityComparer<MeshTopology>
+    {
+        public bool Equals(MeshTopology x, MeshTopology y)
+        {
+            return x == y;
+        }
+
+        public int GetHashCode(MeshTopology obj)
+        {
+            return (int)obj;
+        }
+    }
 
     private static float GetTriArea(Vector3 A, Vector3 B, Vector3 C)
     {
@@ -310,10 +324,89 @@ internal static class InternalMeshUtil
 {
     public static Func<Mesh, string> GetVertexFormat;
 
+
     static InternalMeshUtil()
     {
         var type = typeof(Editor).Assembly.GetTypes().First((x) => x.Name == "InternalMeshUtil");
         GetVertexFormat = (Func<Mesh, string>)Delegate.CreateDelegate(typeof(Func<Mesh, string>), null,
             type.GetMethod("GetVertexFormat", BindingFlags.Static | BindingFlags.Public));
     }
+
+    // https://gist.github.com/willnode/032eb0c73733ffc862bdfec0a8e8af0e
+
+    static Func<object, Array> _ExtractArrayFromList;
+
+    static void CreateExtractDelegate()
+    {
+
+#if UNITY_2017_2 || UNITY_2017_1 || UNITY_5 || UNITY_4
+        var type = typeof(Mesh);
+#else
+        var type = typeof(Mesh).Assembly.GetTypes().First(x => x.Name == "NoAllocHelpers");
+#endif
+
+        var m = type.GetMethod("ExtractArrayFromList", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy);
+        _ExtractArrayFromList = (Func<object, Array>)Delegate.CreateDelegate(typeof(Func<object, Array>), m);
+    }
+
+    /// <summary>
+    /// Extract array from list
+    /// </summary>
+    public static Array ExtractArrayFromList<T>(List<T> list)
+    {
+        if (_ExtractArrayFromList == null)
+            CreateExtractDelegate();
+        return _ExtractArrayFromList(list);
+    }
+
+    // -----------------------------------------------------
+
+    private delegate void Action<T1, T2, T3, T4, T5, T6>(T1 a, T2 b, T3 c, T4 d, T5 e, T6 f);
+    private delegate void Action<T1, T2, T3, T4, T5, T6, T7>(T1 a, T2 b, T3 c, T4 d, T5 e, T6 f, T7 g);
+
+#if UNITY_2017_2 || UNITY_2017_1 || UNITY_5 || UNITY_4
+
+    static Action<Mesh, int, MeshTopology, Array, int, bool> _SetIndices;
+
+    static void CreateSetIndicesDelegate()
+    {
+        // See ILSpy for this hidden feature
+        var m = typeof(Mesh).GetMethod("SetIndicesImpl", BindingFlags.DeclaredOnly | BindingFlags.NonPublic | BindingFlags.Instance, null, new Type[] { typeof(int), typeof(MeshTopology), typeof(Array), typeof(int), typeof(bool) }, null);
+        _SetIndices = (Action<Mesh, int, MeshTopology, Array, int, bool>)Delegate.CreateDelegate(typeof(Action<Mesh, int, MeshTopology, Array, int, bool>), null, m);
+    }
+
+    /// <summary>
+    /// Mesh.SetIndices with generic list variant
+    /// </summary>
+    public static void SetIndices(Mesh m, List<int> buffer, MeshTopology topology, int submesh, bool recalculate)
+    {
+        if (_SetIndices == null)
+            CreateSetIndicesDelegate();
+        _SetIndices(m, submesh, topology, ExtractArrayFromList(buffer), buffer.Count, recalculate);
+    }
+
+#else
+
+    static Action<Mesh, int, MeshTopology, Array, int, bool, int> _SetIndices;
+
+    static void CreateSetIndicesDelegate()
+    {
+        // See ILSpy for this hidden feature
+        var m = typeof(Mesh).GetMethod("SetIndicesImpl", BindingFlags.DeclaredOnly | BindingFlags.NonPublic | BindingFlags.Instance, null, new Type[] { typeof(int), typeof(MeshTopology), typeof(Array), typeof(int), typeof(bool), typeof(int) }, null);
+        _SetIndices = (Action<Mesh, int, MeshTopology, Array, int, bool, int>)Delegate.CreateDelegate(typeof(Action<Mesh, int, MeshTopology, Array, int, bool, int>), null, m);
+    }
+
+    /// <summary>
+    /// Mesh.SetIndices with generic list variant
+    /// </summary>
+    public static void SetIndices(Mesh m, List<int> buffer, MeshTopology topology, int submesh, bool recalculate)
+    {
+        if (_SetIndices == null)
+            CreateSetIndicesDelegate();
+        _SetIndices(m, submesh, topology, ExtractArrayFromList(buffer), buffer.Count, recalculate, 0);
+    }
+
+
+#endif
+
 }
