@@ -35,4 +35,5 @@ sysinfo.txt
 
 # Models. For testing
 Assets/Models*
+Assets/Meshes*
 *.pptx

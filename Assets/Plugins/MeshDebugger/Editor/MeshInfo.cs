@@ -278,7 +278,7 @@ public class MeshInfo
     {
         for (int i = m_MeshSubmeshCount; i --> 0;)
         {
-            if (i > 0 && m_IndiceOffsets[i - 1] > src)
+            if (i > 0 && m_IndiceOffsets[i] > src)
                 continue;
             submesh = i;
             localidx = src - m_IndiceOffsets[i];

@@ -40,6 +40,7 @@ public partial class MeshDebugger : EditorWindow, IHasCustomMenu
     private Vector3 m_sceneCamPos;
     private Matrix4x4 m_matrix;
     private MeshInfo m_cpu = new MeshInfo();
+    private Mesh m_tempMesh;
 
     private bool m_hasUpdated = false;
 
@@ -72,7 +73,11 @@ public partial class MeshDebugger : EditorWindow, IHasCustomMenu
         }
     }
 
-    void OnDestroy() { m_Gizmo.Dispose(); }
+    void OnDestroy() {
+        m_Gizmo.Dispose();
+        if (m_Mesh)
+            DestroyImmediate(m_Mesh);
+    }
 
     void OnSelectionChange()
     {
@@ -86,16 +91,32 @@ public partial class MeshDebugger : EditorWindow, IHasCustomMenu
         {
             var m = m_Transform.GetComponent<MeshFilter>();
             var m2 = m_Transform.GetComponent<Graphic>();
+            var m3 = m_Transform.GetComponent<SkinnedMeshRenderer>();
             if (m) m_Mesh = m.sharedMesh;
             else if (m2)
             {
-                var m3 = m_Transform.gameObject.AddComponent<MeshDebuggerProxyUI>();
+                var m4 = m_Transform.gameObject.AddComponent<MeshDebuggerProxyUI>();
                 m_Mesh = null;
-                m3.callback += () =>
+                m4.callback += () =>
                 {
-                    m_Mesh = m3.mesh;
+                    m_Mesh = m4.mesh;
                     m_hasUpdated = false;
                 };
+            }
+            else if (m3 && m3.sharedMesh)
+            {
+                if (!m_tempMesh)
+                {
+                    m_tempMesh = new Mesh();
+                    m_tempMesh.hideFlags = HideFlags.HideAndDontSave;
+                }
+                else
+                {
+                    m_tempMesh.Clear();
+                }
+                
+                m3.BakeMesh(m_Mesh = m_tempMesh);
+                m_Mesh.name = m3.sharedMesh.name + " (Snapshot)";
             }
             else
                 m_Mesh = null;
