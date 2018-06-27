@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -28,10 +29,16 @@ public partial class MeshDebugger : EditorWindow, IHasCustomMenu
 
     public enum DebugTriangle { None, Index, Area, Submesh }
     public enum DebugVertice { None, Index, Shared, Duplicates }
+    public enum DebugSurface { None, Color, Facing, UV, Tangents }
+    public enum DebugSurfaceUV { UV = 1, UV2 = 2, UV3 = 3, UV4 = 4 }
+    public enum DebugSurfaceTangents { Normal = 1, Tangent = 2, Bitangent = 3, WorldNormal = 4, WorldTangent = 5, WorldBitangent = 6 }
 
     [Space]
     public DebugTriangle m_DebugTris;
     public DebugVertice m_DebugVert;
+    public DebugSurface m_DebugSurface;
+    public DebugSurfaceUV m_DebugSurfaceUV = DebugSurfaceUV.UV;
+    public DebugSurfaceTangents m_DebugSurfaceTangents = DebugSurfaceTangents.Normal;
     public bool m_UseHeatmap;
     public float m_HeatSize = .1f;
 
@@ -41,6 +48,7 @@ public partial class MeshDebugger : EditorWindow, IHasCustomMenu
     private Matrix4x4 m_matrix;
     private MeshInfo m_cpu = new MeshInfo();
     private Mesh m_tempMesh;
+    private Material m_tempMat;
 
     private bool m_hasUpdated = false;
 
@@ -73,18 +81,66 @@ public partial class MeshDebugger : EditorWindow, IHasCustomMenu
         }
     }
 
-    void OnDestroy() {
+    void OnDestroy()
+    {
         m_Gizmo.Dispose();
         if (m_tempMesh)
             DestroyImmediate(m_tempMesh);
+        if (m_tempMat)
+            DestroyImmediate(m_tempMat);
+    }
+
+    Material[] m_backupMats;
+    bool m_matModificationBreaksPrefab = false;
+
+    void ChangeMaterial(Material mat)
+    {
+        MeshRenderer r;
+        if (m_Transform && (r = m_Transform.GetComponent<MeshRenderer>()))
+        {
+            if (mat)
+            {
+                if (m_backupMats == null)
+                {
+                    m_backupMats = r.sharedMaterials;
+                    m_matModificationBreaksPrefab = (PrefabUtility.GetPrefabType(r) > PrefabType.ModelPrefab
+                         && PrefabUtility.GetPropertyModifications(r).FirstOrDefault(x => x.propertyPath.StartsWith("m_Materials")) == null);
+                    r.sharedMaterials = Enumerable.Repeat(mat, m_backupMats.Length).ToArray();
+                }
+                mat.SetInt(Styles.UV_Mode, (int)m_DebugSurfaceUV);
+                mat.SetInt(Styles.Tan_Mode, (int)m_DebugSurfaceTangents);
+            }
+            else if (m_backupMats != null)
+            {
+                if (m_matModificationBreaksPrefab)
+                {
+                    var modifs = PrefabUtility.GetPropertyModifications(r);
+                    modifs = modifs.Where(x => !x.propertyPath.StartsWith("m_Materials")).ToArray();
+                    PrefabUtility.SetPropertyModifications(r, modifs);
+                }
+                else
+                    r.sharedMaterials = m_backupMats;
+                m_backupMats = null;
+            }
+        }
+    }
+
+    void RestoreDefault()
+    {
+        if (m_Transform.GetComponent<MeshDebuggerProxyUI>())
+        {
+            DestroyImmediate(m_Transform.GetComponent<MeshDebuggerProxyUI>());
+        }
+        if (m_backupMats != null && m_backupMats.Length > 0)
+        {
+            ChangeMaterial(null);
+        }
     }
 
     void OnSelectionChange()
     {
-        if (m_Transform && m_Transform.GetComponent<MeshDebuggerProxyUI>())
-        {
-            DestroyImmediate(m_Transform.GetComponent<MeshDebuggerProxyUI>());
-        }
+        if (m_Transform)
+            RestoreDefault();
 
         m_Transform = Selection.activeTransform;
         if (m_Transform)
@@ -92,7 +148,12 @@ public partial class MeshDebugger : EditorWindow, IHasCustomMenu
             var m = m_Transform.GetComponent<MeshFilter>();
             var m2 = m_Transform.GetComponent<Graphic>();
             var m3 = m_Transform.GetComponent<SkinnedMeshRenderer>();
-            if (m) m_Mesh = m.sharedMesh;
+            if (m)
+            {
+                m_Mesh = m.sharedMesh;
+                if (m_DebugSurface != DebugSurface.None)
+                    ChangeMaterial(m_tempMat);
+            }
             else if (m2)
             {
                 var m4 = m_Transform.gameObject.AddComponent<MeshDebuggerProxyUI>();
@@ -114,7 +175,7 @@ public partial class MeshDebugger : EditorWindow, IHasCustomMenu
                 {
                     m_tempMesh.Clear();
                 }
-                
+
                 m3.BakeMesh(m_Mesh = m_tempMesh);
                 m_Mesh.name = m3.sharedMesh.name + " (Snapshot)";
             }
@@ -394,6 +455,10 @@ public partial class MeshDebugger : EditorWindow, IHasCustomMenu
         static public string[] numbers;
 
         public const int GUILimit = 2500;
+
+        public static int UV_Mode = Shader.PropertyToID("UV_Mode");
+
+        public static int Tan_Mode = Shader.PropertyToID("Tan_Mode");
 
         static Styles()
         {

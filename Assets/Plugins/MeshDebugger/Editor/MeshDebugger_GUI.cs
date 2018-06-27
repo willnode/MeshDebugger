@@ -15,7 +15,7 @@ public partial class MeshDebugger : EditorWindow
 
         public static GUIContent Configuration = new GUIContent("Configuration", "Toggleable control");
         public static GUIContent Static = new GUIContent("Static", "Turn on to assume that the mesh won't change internally (ie. not procedural)");
-        public static GUIContent DepthCulling = new GUIContent("Depth Culling", "Turn on to cull cues that behind the object");
+        public static GUIContent DepthCulling = new GUIContent("Depth Culling", "Turn on to cull cues which behind the object");
         public static GUIContent Equalize = new GUIContent("Equalize", "Turn on to keep cues on scale no matter far it is\n(NOTE: does not work correctly if static is on)");
         public static GUIContent PartialDebug = new GUIContent("Partial Debug", "");
 
@@ -26,19 +26,29 @@ public partial class MeshDebugger : EditorWindow
         public static GUIContent Bitangent = new GUIContent("Bitangent", "Bitangent (cross of normal and tangent) vector of vertices");
 
         public static GUIContent AdditionalRays = new GUIContent("Additional Rays", "");
-        public static GUIContent VertsToIndice = new GUIContent("Vertex to Indice", "Incomplete");
-        public static GUIContent TriangleNormal = new GUIContent("Triangle Normal", "");
+        public static GUIContent VertsToIndice = new GUIContent("Vertex to Indice", "Ray from vertices to each triangles in median");
+        public static GUIContent TriangleNormal = new GUIContent("Triangle Normal", "Median Normal vector of triangles");
 
-        public static GUIContent UseHeatmap = new GUIContent("Use Heatmap", "");
-        public static GUIContent DebugVertices = new GUIContent("Debug Vertices", "");
-        public static GUIContent DebugTriangles = new GUIContent("Debug Triangles", "");
+        public static GUIContent UseHeatmap = new GUIContent("Use Heatmap", "Use Color indicator instead of GUI Labels");
+        public static GUIContent DebugVertices = new GUIContent("Debug Vertices", "Debug Vertice Modes");
+        public static GUIContent DebugTriangles = new GUIContent("Debug Triangles", "Debug Triangle Modes");
 
-        public static GUIContent None = new GUIContent("None", "");
-        public static GUIContent Index = new GUIContent("Index", "");
-        public static GUIContent Shared = new GUIContent("Shared", "");
-        public static GUIContent Duplicates = new GUIContent("Duplicates", "");
-        public static GUIContent Area = new GUIContent("Area", "");
-        public static GUIContent Submesh = new GUIContent("Submesh", "");
+        public static GUIContent DebugSurface = new GUIContent("Debug Surface", "Debug Surface Modes");
+        public static GUIContent SurfaceUV = new GUIContent("Surface UV", "Surface UV Mode");
+        public static GUIContent SurfaceTangent = new GUIContent("Surface Tangent", "Surface Tangent Mode");
+
+        public static GUIContent None = new GUIContent("None", "Not Activated");
+        public static GUIContent Index = new GUIContent("Index", "Debug Index in Buffer");
+        public static GUIContent Shared = new GUIContent("Shared", "Debug of how many triangles use the vertex");
+        public static GUIContent Duplicates = new GUIContent("Duplicates", "Debug of how many vertices have the same position");
+        public static GUIContent Area = new GUIContent("Area", "Debug Calculated area surface of each triangle");
+        public static GUIContent Submesh = new GUIContent("Submesh", "Debug Submesh index of each triangle");
+
+        public static GUIContent Facing = new GUIContent("Facing");
+        public static GUIContent Color = new GUIContent("Color");
+        public static GUIContent UV = new GUIContent("UV");
+        public static GUIContent Tangents = new GUIContent("Tangents");
+        public static int[] Surfaces = new int[] { 0, 1, 2, 3 };
 
     }
 
@@ -120,6 +130,33 @@ public partial class MeshDebugger : EditorWindow
             EditorGUILayout.EndHorizontal();
         }
         {
+            EditorGUI.BeginChangeCheck();
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.PrefixLabel(UI.DebugSurface);
+            if (GUILayout.Toggle(m_DebugSurface == DebugSurface.None, UI.None, EditorStyles.miniButtonLeft)) m_DebugSurface = DebugSurface.None;
+            if (GUILayout.Toggle(m_DebugSurface == DebugSurface.Facing, UI.Facing, EditorStyles.miniButtonMid)) m_DebugSurface = DebugSurface.Facing;
+            if (GUILayout.Toggle(m_DebugSurface == DebugSurface.Color, UI.Color, EditorStyles.miniButtonMid)) m_DebugSurface = DebugSurface.Color;
+            if (GUILayout.Toggle(m_DebugSurface == DebugSurface.UV, UI.UV, EditorStyles.miniButtonMid)) m_DebugSurface = DebugSurface.UV;
+            if (GUILayout.Toggle(m_DebugSurface == DebugSurface.Tangents, UI.Tangents, EditorStyles.miniButtonRight)) m_DebugSurface = DebugSurface.Tangents;
+            EditorGUILayout.EndHorizontal();
+            if (m_DebugSurface == DebugSurface.UV)
+            {
+                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.PrefixLabel(UI.SurfaceUV);
+                m_DebugSurfaceUV = (DebugSurfaceUV)EditorGUILayout.EnumPopup(m_DebugSurfaceUV);
+                EditorGUILayout.EndHorizontal();
+            }
+            if (m_DebugSurface == DebugSurface.Tangents)
+            {
+                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.PrefixLabel(UI.SurfaceTangent);
+                m_DebugSurfaceTangents = (DebugSurfaceTangents)EditorGUILayout.EnumPopup(m_DebugSurfaceTangents);
+                EditorGUILayout.EndHorizontal();
+            }
+            if (EditorGUI.EndChangeCheck())
+                UpdateTempMaterial();
+        }
+        {
             EditorGUILayout.Space();
             if (m_Mesh)
                 EditorGUILayout.HelpBox( "Mesh Features:\n" + m_cpu.m_Features, MessageType.Info);
@@ -131,5 +168,42 @@ public partial class MeshDebugger : EditorWindow
             m_hasUpdated = false;
             SceneView.RepaintAll();
         }
+    }
+
+    Shader GetShaderForTempMaterial()
+    {
+        switch (m_DebugSurface)
+        {
+            case DebugSurface.None:
+            default:
+                return null;
+            case DebugSurface.Color:
+                return Shader.Find("Debug/Color");
+            case DebugSurface.Facing:
+                return Shader.Find("Debug/FrontBack");
+            case DebugSurface.UV:
+                return Shader.Find("Debug/UV");
+            case DebugSurface.Tangents:
+                return Shader.Find("Debug/Tangents");
+        }
+    }
+
+    void UpdateTempMaterial ()
+    {
+        if (m_DebugSurface == DebugSurface.None)
+        {
+            ChangeMaterial(null);
+            return;
+        }
+        else if (!m_tempMat)
+            m_tempMat = new Material(GetShaderForTempMaterial())
+            {
+                hideFlags = HideFlags.HideAndDontSave,
+                name = "MeshDebugger Debug Material"
+            };
+        else
+            m_tempMat.shader = GetShaderForTempMaterial();
+
+        ChangeMaterial(m_tempMat);
     }
 }
