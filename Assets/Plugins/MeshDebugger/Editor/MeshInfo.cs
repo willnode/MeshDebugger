@@ -21,7 +21,7 @@ public class MeshInfo
     public List<Vector3> m_Verts;
     public List<int> m_VertUsedCounts;
     public Dictionary<Vector3, int> m_VertSimilars;
-    public List<Vector3> m_VertToIndicesDir;
+    public List<List<int>> m_VertToIndicesDir;
 
     public List<int>[] m_Indices;
     public int[] m_IndiceOffsets;
@@ -173,11 +173,14 @@ public class MeshInfo
                 var indice = m_Indices[i];
                 for (int j = 0; j < indice.Count; j++)
                 {
-                    var idx = indice[j];
-                    m_VertToIndicesDir[idx] = (m_IndiceMedians[i][j / m_TopologyDivision[m_IndiceTypes[i]]] - m_Verts[idx]);
+                    var idx = indice[j]; // this is index of vertex, btw
                     if (m_VertUsedCounts[idx] == 0)
+                    {
                         m_VertOrphan--;
-                    m_VertUsedCountMax = Mathf.Max(m_VertUsedCountMax, ++m_VertUsedCounts[idx]);
+                        m_VertToIndicesDir[idx] = new List<int>();
+                    }
+                    m_VertToIndicesDir[idx].Add(m_IndiceOffsets[i] + j);
+                   m_VertUsedCountMax = Mathf.Max(m_VertUsedCountMax, ++m_VertUsedCounts[idx]);
                 }
             }
         }
@@ -269,6 +272,20 @@ public class MeshInfo
     {
         Reset<T>(ref list);
         list.AddRange(array);
+    }
+
+    public void UnpackTriangleIdx(int src, out int submesh, out int localidx)
+    {
+        for (int i = m_MeshSubmeshCount; i --> 0;)
+        {
+            if (i > 0 && m_IndiceOffsets[i - 1] > src)
+                continue;
+            submesh = i;
+            localidx = src - m_IndiceOffsets[i];
+            return;
+        }
+        submesh = 0;
+        localidx = src;
     }
 }
 

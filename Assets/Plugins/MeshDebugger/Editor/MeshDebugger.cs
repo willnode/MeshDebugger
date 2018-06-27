@@ -163,7 +163,17 @@ public partial class MeshDebugger : EditorWindow, IHasCustomMenu
                 if (m_DebugBinormalVerts)
                     m_Gizmo.AddRay(vert, m_cpu.m_Normals[2][i] * m_RaySize, red);
                 if (m_DebugVertsToIndice)
-                    m_Gizmo.AddLine(vert, vert + m_cpu.m_VertToIndicesDir[i], cyan);
+                {
+                    var refs = m_cpu.m_VertToIndicesDir[i];
+                    if (refs != null)
+                        for (int j = 0; j < refs.Count; j++)
+                        {
+                            int submesh, localidx;
+                            m_cpu.UnpackTriangleIdx(refs[j], out submesh, out localidx);
+                            localidx /= MeshInfo.m_TopologyDivision[m_cpu.m_IndiceTypes[submesh]];
+                            m_Gizmo.AddLine(vert, m_cpu.m_IndiceMedians[submesh][localidx], cyan);
+                        }
+                }
             });
         }
 
