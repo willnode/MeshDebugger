@@ -17,6 +17,7 @@ public class MeshDebuggerProxyUI : BaseMeshEffect
         {
             mesh = new Mesh();
             mesh.hideFlags = HideFlags.HideAndDontSave;
+            mesh.name = gameObject.name + " (Snapshot)";
         }
         base.OnEnable();
     }
@@ -32,9 +33,7 @@ public class MeshDebuggerProxyUI : BaseMeshEffect
 
     public override void ModifyMesh(VertexHelper vh)
     {
-        mesh.Clear();
         vh.FillMesh(mesh);
-
         if (callback != null) callback();     
     }
 }

@@ -62,6 +62,7 @@ public partial class MeshDebugger : EditorWindow
             m_Mesh = (Mesh)EditorGUILayout.ObjectField(m_Mesh, typeof(Mesh), true);
             EditorGUILayout.EndHorizontal();
         }
+        EditorGUI.BeginDisabledGroup(!m_Mesh || !m_Transform);
         {
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.PrefixLabel(UI.Configuration);
@@ -163,6 +164,7 @@ public partial class MeshDebugger : EditorWindow
             if (!m_UseHeatmap && (m_DebugVert != DebugVertice.None || m_DebugTris != DebugTriangle.None) && !IsSafeToDrawGUI())
                 EditorGUILayout.HelpBox("Verts / Triangle count are too large to be displayed with GUI index rendering.\nConsider set smaller section or enable Heatmap instead.", MessageType.Warning);
         }
+        EditorGUI.EndDisabledGroup();
         if (EditorGUI.EndChangeCheck())
         {
             m_hasUpdated = false;

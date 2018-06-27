@@ -162,6 +162,7 @@ public partial class MeshDebugger : EditorWindow, IHasCustomMenu
                 {
                     m_Mesh = m4.mesh;
                     m_hasUpdated = false;
+                    Repaint();
                 };
             }
             else if (m3 && m3.sharedMesh)
@@ -347,12 +348,15 @@ public partial class MeshDebugger : EditorWindow, IHasCustomMenu
                 break;
             case DebugTriangle.Area:
                 EachIndice((i, j, vert) =>
-                     DrawLabel(vert, m_cpu.m_IndiceNormals[i][j], m_cpu.m_IndiceAreas[i][j].ToString("0.0"))
+                {
+                    var area = m_cpu.m_IndiceAreas[i][j];
+                    DrawLabel(vert, m_cpu.m_IndiceNormals[i][j], area.ToString(area < 1 ? "0.00" : "0.0"));
+                }
                 );
                 break;
             case DebugTriangle.Submesh:
                 EachIndice((i, j, vert) =>
-                        DrawLabel(vert, m_cpu.m_IndiceNormals[i][j], i.ToString("0.0"))
+                        DrawLabel(vert, m_cpu.m_IndiceNormals[i][j], i)
                 );
                 break;
         }

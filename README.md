@@ -1,24 +1,23 @@
-# MeshDebugger v0.6
+# MeshDebugger v0.7
 
 ![Screenshot](Screenshots/Demo.png)
 
-This is an editor tool to visually inspect a mesh. Very helpful if you want to debug your procedural mesh.
+MeshDebugger is an editor tool to visually inspect a mesh. Very helpful if you want to debug your procedurally generated mesh or inspecting ideal parts of your model.
 
 ## Download + Manual
 
 **Download the plugin via [Releases](/willnode/meshdebugger/releases) or [Asset Store](//u3d.as/Qsd)**.
 
-Also see **[Usage Instruction](INSTRUCTIONS.md)**.
+See **[Usage Instruction Here](INSTRUCTIONS.md)**.
 
 ## Features
 
 + Super simple (Just open the window and select a GameObject)
-+ Dynamic update everytime scene repaint (can be turned off for speed too)
-+ Depth Culling (Reduces visual complexity)
++ Dynamic update everytime scene repaint (can be turned off for speed)
++ Depth Culling (Reduces visual complexity) and/or only Inspect by fraction part.
 + Inspect static mesh with over 65K vertices without lag (and yes, it don't have to be Unity 2017.3 to use it)
-+ Many visual choices: Rays (eg. normal/tangent vertices), Heatmap (eg. triangle density) or Numbered GUI (eg. triangle/vert index)
-+ Inspect uGUI (Unity UI) normally.
-+ Also includes [shaders for visual debugging](Assets/Plugins/MeshDebugger/Shaders)
++ Many visual choices: Rays (normal/tangent/bitangent), Heatmap or Numbered GUI (triangle/vert index and other properties), Surface Shading (triangle facing, vertex uv and color), etc.
++ Support uGUI (Unity UI) and SkinnedMeshRenderer with no additional setup.
 
 ## Technology
 
@@ -32,7 +31,7 @@ MeshDebugger does this in simple order:
 
 Because MeshDebugger don't use `Gizmos` or `Handles`, it's possible to bring inspection into runtime build, although it still need several modification because this is editor-oriented tool.
 
-If enough people interested I can make separate repo for `IMGizmos` which makes this Immediate Drawing wonderfully simpler and fast.
+If enough people interested I can make separate repo for [IMGizmos](Assets\Plugins\MeshDebugger\Editor\IMGizmos.cs) which makes this Immediate Drawing wonderfully simpler and fast.
 
 ## License
 
