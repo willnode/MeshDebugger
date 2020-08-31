@@ -62,7 +62,11 @@ public partial class MeshDebugger : EditorWindow, IHasCustomMenu
 
     void OnEnable()
     {
+#if UNITY_2018 || UNITY_2017 || UNITY_5
         SceneView.onSceneGUIDelegate += OnSceneGUI;
+#else
+        SceneView.duringSceneGui += OnSceneGUI;
+#endif
         Selection.selectionChanged += OnSelectionChange;
         m_hasUpdated = false;
 
@@ -72,7 +76,11 @@ public partial class MeshDebugger : EditorWindow, IHasCustomMenu
 
     void OnDisable()
     {
+#if UNITY_2018 || UNITY_2017 || UNITY_5
         SceneView.onSceneGUIDelegate -= OnSceneGUI;
+#else
+        SceneView.duringSceneGui -= OnSceneGUI;
+#endif
         Selection.selectionChanged -= OnSelectionChange;
 
         foreach (var item in m_Gizmo.m_Gizmos)

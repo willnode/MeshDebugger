@@ -81,7 +81,7 @@ public class IMGizmos : ScriptableObject, IDisposable
             m_Gizmos[i].m_Active = i == 0;
             m_Gizmos[i].Init(transform, camera, depth, equalSize);
         }
-      
+
     }
 
     public void End()

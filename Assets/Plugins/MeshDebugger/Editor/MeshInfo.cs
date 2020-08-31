@@ -324,7 +324,6 @@ internal static class InternalMeshUtil
 {
     public static Func<Mesh, string> GetVertexFormat;
 
-
     static InternalMeshUtil()
     {
         var type = typeof(Editor).Assembly.GetTypes().First((x) => x.Name == "InternalMeshUtil");
@@ -385,7 +384,7 @@ internal static class InternalMeshUtil
         _SetIndices(m, submesh, topology, ExtractArrayFromList(buffer), buffer.Count, recalculate);
     }
 
-#else
+#elif UNITY_2017 || UNITY_2018 || UNITY_2019_1 || UNITY_2019_2
 
     static Action<Mesh, int, MeshTopology, Array, int, bool, int> _SetIndices;
 

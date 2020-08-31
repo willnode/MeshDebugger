@@ -32,7 +32,7 @@ public class IMGizmo : ScriptableObject
     public Matrix4x4 m_Matrix;
     public bool m_EqualSize;
     public bool m_Active = true;
-  
+
     public List<Vector3> m_Vertices = new List<Vector3>(16);
     public List<Color> m_Color = new List<Color>(16);
     public List<int> m_Lines = new List<int>(16);
@@ -229,21 +229,24 @@ public class IMGizmo : ScriptableObject
         m_Mesh.SetColors(m_Color);
         m_Mesh.SetUVs(0, m_UV);
         m_Mesh.subMeshCount = 2;
+#if UNITY_2019_2 || UNITY_2019_1 || UNITY_2018 || UNITY_2017 || UNITY_5
         InternalMeshUtil.SetIndices(m_Mesh, m_Lines, MeshTopology.Lines, 0, false);
         InternalMeshUtil.SetIndices(m_Mesh, m_Quads, MeshTopology.Quads, 1, false);
+#else
+        m_Mesh.SetIndices(m_Lines, MeshTopology.Lines, 0, false);
+        m_Mesh.SetIndices(m_Quads, MeshTopology.Quads, 1, false);
+#endif
         m_Mesh.RecalculateBounds();
     }
 
     public void Clear()
     {
-
         m_Mesh.Clear();
         m_Vertices.Clear();
         m_Color.Clear();
         m_Lines.Clear();
         m_Quads.Clear();
         m_UV.Clear();
-
     }
 
     public void Render()
