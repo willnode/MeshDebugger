@@ -318,6 +318,38 @@ public class MeshInfo
         submesh = 0;
         localidx = src;
     }
+
+    /// <summary>
+    /// If normal data for the specified vertex does not exist then this method will return Vector3.zero
+    /// rather than throwing an IndexOutOfRangeException
+    /// </summary>
+    /// <param name="i1"></param>
+    /// <param name="i2"></param>
+    /// <returns></returns>
+    public Vector3 GetNormalSafely(int i1, int i2)
+    {
+        if (i2 < m_Normals[i1].Count)
+        {
+            return m_Normals[i1][i2];
+        }
+        return Vector3.zero;
+    }
+
+    /// <summary>
+    /// If normal data for the specified index does not exist then this method will return Vector3.zero
+    /// rather than throwing an IndexOutOfRangeException
+    /// </summary>
+    /// <param name="i1"></param>
+    /// <param name="i2"></param>
+    /// <returns></returns>
+    public Vector3 GetIndexNormalsSafely(int i1, int i2)
+    {
+        if (i2 < m_IndiceNormals[i1].Count)
+        {
+            return m_IndiceNormals[i1][i2];
+        }
+        return Vector3.zero;
+    }
 }
 
 internal static class InternalMeshUtil
