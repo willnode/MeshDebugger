@@ -351,20 +351,20 @@ public partial class MeshDebugger : EditorWindow, IHasCustomMenu
         {
             case DebugTriangle.Index:
                 EachIndice((i, j, vert) =>
-                    DrawLabel(vert, m_cpu.m_IndiceNormals[i][j], (j + m_cpu.m_IndiceOffsets[i]))
+                    DrawLabel(vert, m_cpu.GetIndexNormalsSafely(i, j), (j + m_cpu.m_IndiceOffsets[i]))
                 );
                 break;
             case DebugTriangle.Area:
                 EachIndice((i, j, vert) =>
                 {
                     var area = m_cpu.m_IndiceAreas[i][j];
-                    DrawLabel(vert, m_cpu.m_IndiceNormals[i][j], area.ToString(area < 1 ? "0.00" : "0.0"));
+                    DrawLabel(vert, m_cpu.GetIndexNormalsSafely(i, j), area.ToString(area < 1 ? "0.00" : "0.0"));
                 }
                 );
                 break;
             case DebugTriangle.Submesh:
                 EachIndice((i, j, vert) =>
-                        DrawLabel(vert, m_cpu.m_IndiceNormals[i][j], i)
+                        DrawLabel(vert, m_cpu.GetIndexNormalsSafely(i, j), i)
                 );
                 break;
         }
@@ -373,12 +373,12 @@ public partial class MeshDebugger : EditorWindow, IHasCustomMenu
         {
             case DebugVertice.Index:
                 EachVert((i, vert) =>
-                    DrawLabel(vert, m_cpu.m_Normals[0][i], i)
+                    DrawLabel(vert, m_cpu.GetNormalSafely(0, i), i)
                 );
                 break;
             case DebugVertice.Shared:
                 EachVert((i, vert) =>
-                    DrawLabel(vert, m_cpu.m_Normals[0][i], m_cpu.m_VertUsedCounts[i])
+                    DrawLabel(vert, m_cpu.GetNormalSafely(0, i), m_cpu.m_VertUsedCounts[i])
                 );
                 break;
             case DebugVertice.Duplicates:
