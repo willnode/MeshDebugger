@@ -77,7 +77,8 @@ public class MeshInfo
             Set(ref m_Colors, m_Mesh.colors);
             Set(ref m_BoneWeights, m_Mesh.boneWeights);
             Resize(ref m_UVs, 4);
-            for (int i = 0; i < m_MeshSubmeshCount; i++)
+            //uvs are resized to be no more than 4, but if SubMeshCount > 4 then IndexOutOfRangeException would be thrown
+            for (int i = 0; i < m_MeshSubmeshCount && i < m_UVs.Length; i++)// extra range check fixes this
             {
                 m_Mesh.GetUVs(i, m_UVs[i]);
             }
