@@ -1,4 +1,4 @@
-# MeshDebugger v0.8
+# MeshDebugger v0.9
 
 ![Screenshot](Screenshots/Demo.png)
 
@@ -6,7 +6,7 @@ MeshDebugger is an editor tool to visually inspect a mesh. Very helpful if you w
 
 ## Download + Manual
 
-**Download the plugin via [Releases](/willnode/meshdebugger/releases) or [Asset Store](//u3d.as/Qsd)**.
+**Download the plugin via [Releases](https://github.com/willnode/MeshDebugger/releases/latest) or [Asset Store](//u3d.as/Qsd)**.
 
 See **[Usage Instruction Here](INSTRUCTIONS.md)**.
 

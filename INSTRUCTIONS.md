@@ -1,4 +1,4 @@
-# Manual (v0.7.x)
+# Manual (v0.9.x)
 
 After importing the plugin to your project, you can open Mesh Debugger window to start inspecting any selected object.
 
@@ -9,6 +9,8 @@ After importing the plugin to your project, you can open Mesh Debugger window to
 ![The Window](Screenshots/Window.png)
 
 The first row shows which object and mesh that currently being inspected. It will be automatically updated to active (selected) object in the scene, then looking for a Mesh containing in either `MeshFilter` (3D), `SkinnedMeshRenderer` (as Static Snapshot) or `Graphic` (UI).
+
+Note that to be able to inspect a mesh, you need to make sure that the [mesh is readable](https://docs.unity3d.com/Manual/class-Mesh.html#:~:text=and%20Z%20directions.-,Read/Write%20Enabled,-The%20value%20of).
 
 > Until this version you can't lock the selected mesh and there's no plan for supporting multiple inspection in the same time.
 
@@ -54,6 +56,6 @@ Heatmap is used displaying scalar values like vertex index.
 
 ## Mesh Features Info
 
-In near bottom in the Window there are read-only statistics about the inspected mesh including vertex count, indices, vertex channels, and many more. 
+In near bottom in the Window there are read-only statistics about the inspected mesh including vertex count, indices, vertex channels, and many more.
 
 We also open to discuss about what's info else should be included here.
