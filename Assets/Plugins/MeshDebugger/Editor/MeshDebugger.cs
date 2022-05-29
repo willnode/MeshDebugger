@@ -111,7 +111,7 @@ public partial class MeshDebugger : EditorWindow, IHasCustomMenu
                 if (m_backupMats == null || m_backupMats.Length == 0)
                 {
                     m_backupMats = r.sharedMaterials;
-                    m_matModificationBreaksPrefab = (PrefabUtility.GetPrefabType(r) > PrefabType.ModelPrefab
+                    m_matModificationBreaksPrefab = (PrefabUtility.GetPrefabAssetType(r) > PrefabAssetType.Model
                          && PrefabUtility.GetPropertyModifications(r).FirstOrDefault(x => x.propertyPath.StartsWith("m_Materials")) == null);
                     r.sharedMaterials = Enumerable.Repeat(mat, m_backupMats.Length).ToArray();
                 }
