@@ -40,6 +40,7 @@ public partial class MeshDebugger : EditorWindow, IHasCustomMenu
     public DebugSurfaceUV m_DebugSurfaceUV = DebugSurfaceUV.UV;
     public DebugSurfaceTangents m_DebugSurfaceTangents = DebugSurfaceTangents.Normal;
     public bool m_UseHeatmap;
+    public bool m_LockSelection;
     public float m_HeatSize = .1f;
 
     [Space]
@@ -58,6 +59,27 @@ public partial class MeshDebugger : EditorWindow, IHasCustomMenu
         var g = GetWindow<MeshDebugger>();
         g.titleContent = new GUIContent("Mesh Debugger");
         g.Show();
+    }
+
+    [ContextMenu("Snapshot Mesh")]
+    void SnapshotMesh()
+    {
+        var cloneMesh = new Mesh();
+        cloneMesh.hideFlags = HideFlags.DontSave;
+        cloneMesh.name = (m_Transform ? m_Transform.name : "Mesh") + " (Snapshot)";
+        var vh = new VertexHelper(m_Mesh);
+        vh.FillMesh(cloneMesh);
+        var cloneGameObject = new GameObject(cloneMesh.name);
+        cloneGameObject.hideFlags = HideFlags.DontSave;
+        cloneGameObject.AddComponent<MeshFilter>().mesh = cloneMesh;
+        cloneGameObject.AddComponent<MeshRenderer>().material = AssetDatabase.GetBuiltinExtraResource<Material>("Default-Diffuse.mat");
+    }
+
+    [ContextMenu("Toggle Lock Selection")]
+    void ToggleLockSelection()
+    {
+        m_LockSelection = !m_LockSelection;
+        Repaint();
     }
 
     void OnEnable()
@@ -147,6 +169,9 @@ public partial class MeshDebugger : EditorWindow, IHasCustomMenu
 
     void OnSelectionChange()
     {
+        if (m_LockSelection)
+            return;
+            
         if (m_Transform)
             RestoreDefault();
 

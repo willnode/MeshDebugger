@@ -36,4 +36,25 @@ public class MeshDebuggerProxyUI : BaseMeshEffect
         vh.FillMesh(mesh);
         if (callback != null) callback();     
     }
+
+    
+    [ContextMenu("Force Read from Graphic")]
+    public void ForceReadFromGraphic()
+    {
+        var g = GetComponent<Graphic>();
+        g.SetVerticesDirty();
+        g.Rebuild(CanvasUpdate.PreRender);
+        FieldInfo meshField = typeof(Graphic).GetField("s_Mesh", BindingFlags.NonPublic | BindingFlags.Static);
+        var m = meshField.GetValue(null) as Mesh;
+        if (m)
+        {
+            var vh = new VertexHelper(m);
+            vh.FillMesh(mesh);
+            if (callback != null) callback();
+        }
+        else
+        {
+            Debug.LogError("Failed to read mesh from Graphic");
+        }
+    }
 }
