@@ -31,7 +31,11 @@ MeshDebugger does this in simple order:
 
 Because MeshDebugger don't use `Gizmos` or `Handles`, it's possible to bring inspection into runtime build, although it still need several modification because this is editor-oriented tool.
 
-If enough people interested I can make separate repo for [IMGizmos](Assets\Plugins\MeshDebugger\Editor\IMGizmos.cs) which makes this Immediate Drawing wonderfully simpler and fast.
+If enough people interested I can make separate repo for [IMGizmos](./Assets/Plugins/MeshDebugger/Editor/IMGizmos.cs) which makes this Immediate Drawing wonderfully simpler and fast.
+
+## Changelog
+
+See [Changelog.txt](./Assets/Plugins/MeshDebugger/Changelog.txt).
 
 ## License
 

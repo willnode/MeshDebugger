@@ -1,0 +1,46 @@
+
+v1.0.0: May 22, 2023
++ NEW: Ability to snapshot mesh and lock selection
++ NEW: Added a simple demo scene
++ CHANGE: Minimum unity version is 2021.3
+
+
+v0.9.0: May 29, 2022
++ CHANGE: Minimum unity version is 2019.3
++ CHANGE: Warning will shown on unreadable mesh
++ FIX: Obsolete warning about prefab API in 2019.3
++ FIX: IndexOutOfRangeException by @Riskjockey
+
+
+v0.8.0 - Sep 4, 2020
++ FIX: Make asset compatible with 2019.x
+
+
+v0.7.0 - Jun 28, 2018
++ NEW: Inspect from SkinnedMeshRenderer
++ NEW: Vertex to Indice inspection (was incomplete)
++ NEW: Debug Surface option (only works for MeshFilter at this point)
++ Fix error for meshes that don't have either Normal or Tangent
++ Improved Debugging Performance (far less GC overhead)
++ Fix GUI Label Color when using Dark (Pro) skin
+
+
+v0.6.1 - Feb 24, 2018
++ Change yellow -> cyan for vertex to indice
++ Add custom menu to open help
++ First release on Asset Store
+
+
+v0.6.0 - Feb 9, 2018
++ New: Partial debug scope!
++ New: Informational box about mesh statistics
++ New: material for each debug shaders
++ New statistics and fix some caching issues
++ Show warn box when debugging too much verts/tris with floating GUI
++ Set IMGizmos as ScriptableObject (so that it serialized properly)
++ Remove models (will be gitignored)
++ Unity downgrade to 5.6
+
+
+v0.5.0 - Feb 5, 2018
++ First release on GitHub

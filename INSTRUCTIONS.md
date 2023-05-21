@@ -1,4 +1,4 @@
-# Manual (v0.9.x)
+# Manual (v1.0.x)
 
 After importing the plugin to your project, you can open Mesh Debugger window to start inspecting any selected object.
 
@@ -58,4 +58,14 @@ Heatmap is used displaying scalar values like vertex index.
 
 In near bottom in the Window there are read-only statistics about the inspected mesh including vertex count, indices, vertex channels, and many more.
 
-We also open to discuss about what's info else should be included here.
+## Context Menu
+
+The context menu is available by clicking the three dots on the top right of the window. It contains:
+
++ `Show Help`: Open this manual.
++ `Snapshot Mesh`: Create a static snapshot of the currently inspected mesh. This is useful if you want to inspect a mesh that will change over time.
++ `Toggle Lock Selection`: Lock the currently inspected mesh. 
+
+## About MeshDebugger
+
+This software is open source, meaning you can modify it to your liking. If you have any question or suggestion, feel free to [open an issue](https://github.com/willnode/MeshDebugger/issues/new).
