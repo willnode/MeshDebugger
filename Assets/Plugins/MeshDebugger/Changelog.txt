@@ -23,12 +23,12 @@ v0.7.0 - Jun 28, 2018
 + Fix error for meshes that don't have either Normal or Tangent
 + Improved Debugging Performance (far less GC overhead)
 + Fix GUI Label Color when using Dark (Pro) skin
++ First release on Asset Store
 
 
 v0.6.1 - Feb 24, 2018
 + Change yellow -> cyan for vertex to indice
 + Add custom menu to open help
-+ First release on Asset Store
 
 
 v0.6.0 - Feb 9, 2018

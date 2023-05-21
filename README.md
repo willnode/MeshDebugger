@@ -1,4 +1,4 @@
-# MeshDebugger v0.9
+# MeshDebugger
 
 ![Screenshot](Screenshots/Demo.png)
 
