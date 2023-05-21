@@ -1,60 +1,61 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
+using System.Reflection;
 
-public class MeshDebuggerProxyUI : BaseMeshEffect
+namespace MeshDebuggerLib.Proxy
 {
-    public Mesh mesh;
-
-    public Action callback;
-
-    protected override void OnEnable()
+    public class MeshDebuggerProxyUI : BaseMeshEffect
     {
-        if (!mesh)
+        public Mesh mesh;
+
+        public Action callback;
+
+        protected override void OnEnable()
         {
-            mesh = new Mesh();
-            mesh.hideFlags = HideFlags.HideAndDontSave;
-            mesh.name = gameObject.name + " (Snapshot)";
+            if (!mesh)
+            {
+                mesh = new Mesh();
+                mesh.hideFlags = HideFlags.HideAndDontSave;
+                mesh.name = gameObject.name + " (Snapshot)";
+            }
+            base.OnEnable();
         }
-        base.OnEnable();
-    }
 
-    protected override void OnDestroy()
-    {
-        if (mesh)
+        protected override void OnDestroy()
         {
-            DestroyImmediate(mesh);
+            if (mesh)
+            {
+                DestroyImmediate(mesh);
+            }
+            base.OnDestroy();
         }
-        base.OnDestroy();
-    }
 
-    public override void ModifyMesh(VertexHelper vh)
-    {
-        vh.FillMesh(mesh);
-        if (callback != null) callback();     
-    }
-
-    
-    [ContextMenu("Force Read from Graphic")]
-    public void ForceReadFromGraphic()
-    {
-        var g = GetComponent<Graphic>();
-        g.SetVerticesDirty();
-        g.Rebuild(CanvasUpdate.PreRender);
-        FieldInfo meshField = typeof(Graphic).GetField("s_Mesh", BindingFlags.NonPublic | BindingFlags.Static);
-        var m = meshField.GetValue(null) as Mesh;
-        if (m)
+        public override void ModifyMesh(VertexHelper vh)
         {
-            var vh = new VertexHelper(m);
             vh.FillMesh(mesh);
             if (callback != null) callback();
         }
-        else
+
+
+        [ContextMenu("Force Read from Graphic")]
+        public void ForceReadFromGraphic()
         {
-            Debug.LogError("Failed to read mesh from Graphic");
+            var g = GetComponent<Graphic>();
+            g.SetVerticesDirty();
+            g.Rebuild(CanvasUpdate.PreRender);
+            FieldInfo meshField = typeof(Graphic).GetField("s_Mesh", BindingFlags.NonPublic | BindingFlags.Static);
+            var m = meshField.GetValue(null) as Mesh;
+            if (m)
+            {
+                var vh = new VertexHelper(m);
+                vh.FillMesh(mesh);
+                if (callback != null) callback();
+            }
+            else
+            {
+                Debug.LogError("Failed to read mesh from Graphic");
+            }
         }
     }
 }
